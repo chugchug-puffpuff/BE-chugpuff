@@ -1,4 +1,7 @@
 package chugpuff.chugpuff.repository;
 
-public interface MemberRepository {
+import chugpuff.chugpuff.domain.Member;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface MemberRepository extends JpaRepository<Member, Long> {
 }
