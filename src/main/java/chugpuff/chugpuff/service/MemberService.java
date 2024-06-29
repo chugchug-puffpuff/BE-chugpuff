@@ -15,6 +15,7 @@ public class MemberService {
     private MemberRepository memberRepository;
 
     public Member saveMember(Member member) {
+        validateDuplicateMember(member);
         return memberRepository.save(member);
     }
 
@@ -30,18 +31,28 @@ public class MemberService {
         memberRepository.deleteById(id);
     }
 
-    public Member updateMember(Long id, Member updatedMember) {
-        return memberRepository.findById(id)
-                .map(member -> {
-                    member.setPassword(updatedMember.getPassword());
-                    member.setEmail(updatedMember.getEmail());
-                    member.setJob(updatedMember.getJob());
-                    member.setJobKeyword(updatedMember.getJobKeyword());
-                    return memberRepository.save(member);
-                })
-                .orElseGet(() -> {
-                    updatedMember.setUserId(id);
-                    return memberRepository.save(updatedMember);
+    public Member updateMember(Long id, String password, Member updatedMember) {
+        Optional<Member> optionalMember = memberRepository.findById(id);
+        if (optionalMember.isPresent()) {
+            Member member = optionalMember.get();
+            if (member.getPassword().equals(password)) {
+                member.setPassword(updatedMember.getPassword());
+                member.setEmail(updatedMember.getEmail());
+                member.setJob(updatedMember.getJob());
+                member.setJobKeyword(updatedMember.getJobKeyword());
+                return memberRepository.save(member);
+            } else {
+                throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            }
+        } else {
+            throw new IllegalArgumentException("해당 id에 해당하는 회원이 존재하지 않습니다: " + id);
+        }
+    }
+
+    private void validateDuplicateMember(Member member) {
+        memberRepository.findById(member.getUserId())
+                .ifPresent(m -> {
+                    throw new IllegalStateException("이미 존재하는 회원입니다.");
                 });
     }
 }
