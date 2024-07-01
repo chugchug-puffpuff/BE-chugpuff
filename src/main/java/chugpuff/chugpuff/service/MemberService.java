@@ -46,7 +46,7 @@ public class MemberService {
                 throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
             }
         } else {
-            throw new IllegalArgumentException("해당 id에 해당하는 회원이 존재하지 않습니다: " + id);
+            throw new IllegalArgumentException("해당 id에 해당하는 회원이 존재하지 않습니다: " + user_id);
         }
     }
 
