@@ -59,7 +59,7 @@ public class MemberController {
 
     private MemberDTO convertToDto(Member member) {
         MemberDTO memberDTO = new MemberDTO();
-        memberDTO.setUserId(member.getUserId());
+        memberDTO.setUser_id(member.getUser_id());
         memberDTO.setPassword(member.getPassword());
         memberDTO.setName(member.getName());
         memberDTO.setBirth(member.getBirth());
@@ -75,7 +75,7 @@ public class MemberController {
 
     private Member convertToEntity(MemberDTO memberDTO) {
         Member member = new Member();
-        member.setUserId(memberDTO.getUserId());
+        member.setUser_id(memberDTO.getUser_id());
         member.setPassword(memberDTO.getPassword());
         member.setName(memberDTO.getName());
         member.setBirth(memberDTO.getBirth());

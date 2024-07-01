@@ -13,7 +13,7 @@ import java.time.LocalDate;
 @ToString
 public class MemberDTO {
 
-    private Long userId;
+    private Long user_id;
     private String password;
     private String name;
     private LocalDate birth;
@@ -27,7 +27,7 @@ public class MemberDTO {
 
     public static MemberDTO toMemberDTO(Member member) {
         MemberDTO memberDTO = new MemberDTO();
-        memberDTO.setUserId(member.getUserId());
+        memberDTO.setUser_id(member.getUser_id());
         memberDTO.setPassword(member.getPassword());
         memberDTO.setName(member.getName());
         memberDTO.setBirth(member.getBirth());
