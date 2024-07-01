@@ -24,21 +24,4 @@ public class MemberDTO {
     private Boolean termsAccepted;
     private Boolean privacyPolicyAccepted;
     private Boolean recordingAccepted;
-
-    public static MemberDTO toMemberDTO(Member member) {
-        MemberDTO memberDTO = new MemberDTO();
-        memberDTO.setUser_id(member.getUser_id());
-        memberDTO.setPassword(member.getPassword());
-        memberDTO.setName(member.getName());
-        memberDTO.setBirth(member.getBirth());
-        memberDTO.setEmail(member.getEmail());
-        memberDTO.setJob(member.getJob());
-        memberDTO.setJobKeyword(member.getJobKeyword());
-        memberDTO.setIsAbove15(member.getIsAbove15());
-        memberDTO.setTermsAccepted(member.getTermsAccepted());
-        memberDTO.setPrivacyPolicyAccepted(member.getPrivacyPolicyAccepted());
-        memberDTO.setRecordingAccepted(member.getRecordingAccepted());
-
-        return memberDTO;
-    }
 }
