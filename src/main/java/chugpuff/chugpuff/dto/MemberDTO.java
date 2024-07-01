@@ -20,6 +20,10 @@ public class MemberDTO {
     private String email;
     private String job;
     private String jobKeyword;
+    private Boolean isAbove15;
+    private Boolean termsAccepted;
+    private Boolean privacyPolicyAccepted;
+    private Boolean recordingAccepted;
 
     public static MemberDTO toMemberDTO(Member member) {
         MemberDTO memberDTO = new MemberDTO();
@@ -30,6 +34,10 @@ public class MemberDTO {
         memberDTO.setEmail(member.getEmail());
         memberDTO.setJob(member.getJob());
         memberDTO.setJobKeyword(member.getJobKeyword());
+        memberDTO.setIsAbove15(member.getIsAbove15());
+        memberDTO.setTermsAccepted(member.getTermsAccepted());
+        memberDTO.setPrivacyPolicyAccepted(member.getPrivacyPolicyAccepted());
+        memberDTO.setRecordingAccepted(member.getRecordingAccepted());
 
         return memberDTO;
     }

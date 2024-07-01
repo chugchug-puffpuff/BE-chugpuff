@@ -38,4 +38,16 @@ public class Member {
     @Column(nullable = false)
     private String jobKeyword;
 
+    @Column(nullable = false)
+    private Boolean isAbove15;
+
+    @Column(nullable = false)
+    private Boolean termsAccepted;
+
+    @Column(nullable = false)
+    private Boolean privacyPolicyAccepted;
+
+    @Column(nullable = false)
+    private Boolean recordingAccepted;
+
 }

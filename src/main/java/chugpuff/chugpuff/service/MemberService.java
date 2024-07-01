@@ -16,6 +16,7 @@ public class MemberService {
 
     public Member saveMember(Member member) {
         validateDuplicateMember(member);
+        validateAllTermsAccepted(member);
         return memberRepository.save(member);
     }
 
@@ -54,5 +55,14 @@ public class MemberService {
                 .ifPresent(m -> {
                     throw new IllegalStateException("이미 존재하는 회원입니다.");
                 });
+    }
+
+    private void validateAllTermsAccepted(Member member) {
+        if (!Boolean.TRUE.equals(member.getIsAbove15()) ||
+                !Boolean.TRUE.equals(member.getTermsAccepted()) ||
+                !Boolean.TRUE.equals(member.getPrivacyPolicyAccepted()) ||
+                !Boolean.TRUE.equals(member.getRecordingAccepted())) {
+            throw new IllegalArgumentException("모든 필수 항목에 동의해야 회원가입이 가능합니다.");
+        }
     }
 }

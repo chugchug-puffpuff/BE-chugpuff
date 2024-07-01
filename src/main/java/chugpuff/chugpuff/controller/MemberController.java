@@ -66,6 +66,10 @@ public class MemberController {
         memberDTO.setEmail(member.getEmail());
         memberDTO.setJob(member.getJob());
         memberDTO.setJobKeyword(member.getJobKeyword());
+        memberDTO.setIsAbove15(member.getIsAbove15());
+        memberDTO.setTermsAccepted(member.getTermsAccepted());
+        memberDTO.setPrivacyPolicyAccepted(member.getPrivacyPolicyAccepted());
+        memberDTO.setRecordingAccepted(member.getRecordingAccepted());
         return memberDTO;
     }
 
@@ -78,6 +82,10 @@ public class MemberController {
         member.setEmail(memberDTO.getEmail());
         member.setJob(memberDTO.getJob());
         member.setJobKeyword(memberDTO.getJobKeyword());
+        member.setIsAbove15(memberDTO.getIsAbove15());
+        member.setTermsAccepted(memberDTO.getTermsAccepted());
+        member.setPrivacyPolicyAccepted(memberDTO.getPrivacyPolicyAccepted());
+        member.setRecordingAccepted(memberDTO.getRecordingAccepted());
         return member;
     }
 }
