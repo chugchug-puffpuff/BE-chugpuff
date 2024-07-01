@@ -57,6 +57,12 @@ public class MemberController {
         return new ResponseEntity<>(updatedDTO, HttpStatus.OK); // HTTP 상태 코드 200과 함께 업데이트된 회원 정보 반환
     }
 
+    @GetMapping("checkUser_id")
+    public ResponseEntity<Boolean> checkUserIdDuplicate(@RequestParam Long user_id) {
+        boolean isDuplicate = memberService.checkUserIdDuplicate(user_id);
+        return new ResponseEntity<>(isDuplicate, HttpStatus.OK);
+    }
+
     private MemberDTO convertToDto(Member member) {
         MemberDTO memberDTO = new MemberDTO();
         memberDTO.setUser_id(member.getUser_id());

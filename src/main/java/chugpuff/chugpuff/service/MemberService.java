@@ -65,4 +65,8 @@ public class MemberService {
             throw new IllegalArgumentException("모든 필수 항목에 동의해야 회원가입이 가능합니다.");
         }
     }
+
+    public boolean checkUserIdDuplicate(Long user_id) {
+        return memberRepository.findById(user_id).isPresent();
+    }
 }
