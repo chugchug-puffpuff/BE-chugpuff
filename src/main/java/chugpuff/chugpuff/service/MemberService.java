@@ -32,8 +32,8 @@ public class MemberService {
         memberRepository.deleteById(id);
     }
 
-    public Member updateMember(Long id, String password, Member updatedMember) {
-        Optional<Member> optionalMember = memberRepository.findById(id);
+    public Member updateMember(Long user_id, String password, Member updatedMember) {
+        Optional<Member> optionalMember = memberRepository.findById(user_id);
         if (optionalMember.isPresent()) {
             Member member = optionalMember.get();
             if (member.getPassword().equals(password)) {
