@@ -20,11 +20,15 @@ public class MemberController {
     private MemberService memberService;
 
     @PostMapping
-    public ResponseEntity<MemberDTO> addMember(@RequestBody MemberDTO memberDTO) {
-        Member member = convertToEntity(memberDTO);
-        Member savedMember = memberService.saveMember(member);
-        MemberDTO savedMemberDTO = convertToDto(savedMember);
-        return new ResponseEntity<>(savedMemberDTO, HttpStatus.CREATED);
+    public ResponseEntity<?> addMember(@RequestBody MemberDTO memberDTO) {
+        try {
+            Member member = convertToEntity(memberDTO);
+            Member savedMember = memberService.saveMember(member);
+            MemberDTO savedMemberDTO = convertToDto(savedMember);
+            return new ResponseEntity<>(savedMemberDTO, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/{id}")
