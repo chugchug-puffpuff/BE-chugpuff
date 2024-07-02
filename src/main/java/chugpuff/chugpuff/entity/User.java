@@ -9,6 +9,7 @@ import lombok.Setter;
 @Setter
 public class User {
     @Id
-    private String userId; // 유저 ID, 기본키
+    private String id; // 유저 ID, 기본키
+
 
 }

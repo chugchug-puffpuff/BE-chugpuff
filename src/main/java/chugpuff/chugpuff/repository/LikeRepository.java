@@ -2,6 +2,7 @@ package chugpuff.chugpuff.repository;
 
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.entity.Like;
+import chugpuff.chugpuff.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
