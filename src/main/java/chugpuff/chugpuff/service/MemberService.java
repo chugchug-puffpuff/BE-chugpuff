@@ -55,14 +55,6 @@ public class MemberService {
         }
     }
 
-    // 회원 중복 체크
-    private void validateDuplicateMember(Member member) {
-        memberRepository.findById(member.getUser_id())
-                .ifPresent(m -> {
-                    throw new IllegalStateException("이미 존재하는 회원입니다.");
-                });
-    }
-
     // 모든 필수 항목 동의 체크
     private void validateAllTermsAccepted(Member member) {
         if (!Boolean.TRUE.equals(member.getIsAbove15()) ||

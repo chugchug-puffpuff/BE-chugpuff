@@ -50,7 +50,7 @@ public class MemberController {
         return new ResponseEntity<>(memberDTOs, HttpStatus.OK); // 조회된 모든 회원 정보 반환
     }
 
-    // 특회원 삭제
+    // 회원 삭제
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMember(@PathVariable Long id) {
         memberService.deleteMember(id); // 회원 삭제
