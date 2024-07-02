@@ -1,6 +1,8 @@
 package chugpuff.chugpuff.service;
 
 import chugpuff.chugpuff.entity.Category;
+import chugpuff.chugpuff.repository.CategoryRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -8,6 +10,8 @@ import java.util.List;
 
 @Service
 public class CategoryService {
+    @Autowired
+    private CategoryRepository categoryRepository;
 
     private final List<Category> categories = Arrays.asList(
             new Category() {{
@@ -26,12 +30,11 @@ public class CategoryService {
     }
 
     // 카테고리 이름으로 조회
-    public Category findCategoryByName(String name) {
-        return categories.stream()
-                .filter(category -> category.getCategoryName().equals(name))
-                .findFirst()
-                .orElse(null);
+
+    public Category findCategoryByName(String categoryName) {
+        return categoryRepository.findByCategoryName(categoryName);
     }
+
 
     // 카테고리 ID로 조회
     public Category findCategoryById(int id) {

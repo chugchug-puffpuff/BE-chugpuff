@@ -3,6 +3,7 @@ package chugpuff.chugpuff.controller;
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.entity.Like;
 import chugpuff.chugpuff.service.BoardService;
+import chugpuff.chugpuff.service.CategoryService;
 import chugpuff.chugpuff.service.LikeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,8 @@ public class BoardController {
     private BoardService boardService;
     @Autowired
     private LikeService likeService;
+    @Autowired
+    private CategoryService categoryService;
 
     @PostMapping
     public Board createBoard(@RequestBody Board board) {
