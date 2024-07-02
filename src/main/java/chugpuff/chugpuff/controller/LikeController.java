@@ -10,6 +10,7 @@ public class LikeController {
     @Autowired
     private LikeService likeService;
 
+
     @PostMapping("/{boardNo}")
     public void toggleLike(@PathVariable int boardNo, @RequestParam String userId) {
         likeService.toggleLike(boardNo, userId);
