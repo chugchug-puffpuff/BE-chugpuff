@@ -82,10 +82,9 @@ public class MemberController {
         memberDTO.setUser_id(member.getUser_id());
         memberDTO.setPassword(member.getPassword());
         memberDTO.setName(member.getName());
-        memberDTO.setBirth(member.getBirth());
-        memberDTO.setEmail(member.getEmail());
         memberDTO.setJob(member.getJob());
         memberDTO.setJobKeyword(member.getJobKeyword());
+        memberDTO.setEmail(member.getEmail());
         memberDTO.setIsAbove15(member.getIsAbove15());
         memberDTO.setTermsAccepted(member.getTermsAccepted());
         memberDTO.setPrivacyPolicyAccepted(member.getPrivacyPolicyAccepted());
@@ -99,10 +98,9 @@ public class MemberController {
         member.setUser_id(memberDTO.getUser_id());
         member.setPassword(memberDTO.getPassword());
         member.setName(memberDTO.getName());
-        member.setBirth(memberDTO.getBirth());
-        member.setEmail(memberDTO.getEmail());
         member.setJob(memberDTO.getJob());
         member.setJobKeyword(memberDTO.getJobKeyword());
+        member.setEmail(memberDTO.getEmail());
         member.setIsAbove15(memberDTO.getIsAbove15());
         member.setTermsAccepted(memberDTO.getTermsAccepted());
         member.setPrivacyPolicyAccepted(memberDTO.getPrivacyPolicyAccepted());

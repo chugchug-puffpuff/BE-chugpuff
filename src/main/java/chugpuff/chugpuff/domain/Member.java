@@ -27,16 +27,13 @@ public class Member {
     private String name;
 
     @Column(nullable = false)
-    private LocalDate birth;
-
-    @Column(nullable = false)
-    private String email;
-
-    @Column(nullable = false)
     private String job;
 
     @Column(nullable = false)
     private String jobKeyword;
+
+    @Column(nullable = false)
+    private String email;
 
     @Column(nullable = false)
     private Boolean isAbove15;
