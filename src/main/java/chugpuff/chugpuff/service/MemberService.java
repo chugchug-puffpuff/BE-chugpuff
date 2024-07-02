@@ -16,7 +16,9 @@ public class MemberService {
 
     // 회원 저장
     public Member saveMember(Member member) {
-        validateDuplicateMember(member);
+        if (checkUserIdDuplicate(member.getUser_id())) {
+            throw new IllegalStateException("이미 존재하는 회원입니다.");
+        }
         validateAllTermsAccepted(member);
         return memberRepository.save(member);
     }
