@@ -15,8 +15,19 @@ public class Like {
 
     @ManyToOne
     @JoinColumn(name = "board_no")
-    private Board board;
+    private Board board; //게시글과의 관계, 외래키로 board_no 사용
 
-    private String userId;
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user; // 유저와의 관계, 외래키로 user_id 사용
+
+    //기본 생성자
+    public Like() {}
+
+    // 팔드 초기화를 위한 생성자
+    public Like(Board board, User user) {
+        this.board = board;
+        this.user = user;
+    }
 
 }
