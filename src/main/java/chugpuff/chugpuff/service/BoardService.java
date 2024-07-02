@@ -54,14 +54,13 @@ public class BoardService {
         return boardRepository.findByCategory_CategoryId(categoryId);
     }
 
-    public List<Board> findAllByLikesDesc() {
-        return boardRepository.findAllByLikesDesc();
+    public List<Board> findAllByOrderByLikesDesc() {
+        return boardRepository.findAllByOrderByLikesDesc();
     }
 
-    public List<Board> findAllByBoardDateDesc() {
-        return boardRepository.findAllByBoardDateDesc();
+    public List<Board> findAllByOrderByBoardDateDesc() {
+        return boardRepository.findAllByOrderByBoardDateDesc();
     }
-
     public List<Board> findAllByCommentsDesc() {
         return boardRepository.findAllByCommentsCountDesc();
     }

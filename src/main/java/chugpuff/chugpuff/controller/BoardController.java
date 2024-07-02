@@ -56,12 +56,12 @@ public class BoardController {
 
     @GetMapping("/likes")
     public List<Board> getBoardsByLikesDesc() {
-        return boardService.findAllByLikesDesc();
+        return boardService.findAllByOrderByLikesDesc();
     }
 
     @GetMapping("/recent")
     public List<Board> getBoardsByRecent() {
-        return boardService.findAllByBoardDateDesc();
+        return boardService.findAllByOrderByBoardDateDesc();
     }
 
     @GetMapping("/comments")
