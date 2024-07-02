@@ -34,42 +34,6 @@ public class LikeService {
     }
 
     /**
-     * 주어진 게시글 번호와 사용자 ID로 좋아요 추가
-     *
-     * @param boardNo 게시글 번호
-     * @param userId 사용자 ID
-     * @return 생성된 좋아요 객체, 또는 게시글을 찾을 수 없는 경우 null
-     */
-    public Like addLike(int boardNo, String userId) {
-        Optional<Board> board = boardRepository.findById(boardNo);
-        Optional<User> user = userRepository.findById(userId);
-        if (board.isPresent()) {
-            Like newLike = new Like();
-            newLike.setBoard(board.get());
-            newLike.setUser(user.get());
-            return likeRepository.save(newLike);
-        }
-        return null;
-    }
-
-    /**
-     * 주어진 게시글 번호와 사용자 ID로 좋아요 제거
-     *
-     * @param boardNo 게시글 번호
-     * @param userId 사용자 ID
-     */
-    public void removeLike(int boardNo, String userId) {
-        Optional<Board> board = boardRepository.findById(boardNo);
-        Optional<User> user = userRepository.findById(userId);
-        if (board.isPresent() && user.isPresent()) {
-            Optional<Like> likeOptional = likeRepository.findByBoardAndUserId(board.get(), userId);
-            if (likeOptional.isPresent()) {
-                likeRepository.delete(likeOptional.get());
-            }
-        }
-    }
-
-    /**
      * 주어진 게시글 번호와 사용자 ID로 좋아요 상태 토글
      * 만약 좋아요가 이미 존재하면 삭제하고, 그렇지 않으면 추가
      *
@@ -82,8 +46,10 @@ public class LikeService {
         if (board.isPresent() && user.isPresent()) {
             Optional<Like> likeOptional = likeRepository.findByBoardAndUserId(board.get(), userId);
             if (likeOptional.isPresent()) {
+                //좋아요가 이미 존재하면 삭제
                 likeRepository.delete(likeOptional.get());
             } else {
+                //좋아요가 존재하지 않으면 추가
                 Like newLike = new Like();
                 newLike.setBoard(board.get());
                 newLike.setUser(user.get());
