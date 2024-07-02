@@ -16,8 +16,11 @@ import java.util.stream.Collectors;
 @RequestMapping("/members")
 public class MemberController {
 
-    @Autowired
     private MemberService memberService;
+
+    public MemberController(MemberService memberService) {
+        this.memberService = memberService;
+    }
 
     // 새로운 회원 추가
     @PostMapping
