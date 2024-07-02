@@ -19,6 +19,7 @@ public class MemberController {
     @Autowired
     private MemberService memberService;
 
+    // 새로운 회원 추가
     @PostMapping
     public ResponseEntity<?> addMember(@RequestBody MemberDTO memberDTO) {
         try {
@@ -31,6 +32,7 @@ public class MemberController {
         }
     }
 
+    // ID로 특정 회원 조회
     @GetMapping("/{id}")
     public ResponseEntity<MemberDTO> getMemberById(@PathVariable Long id) {
         Optional<Member> optionalMember = memberService.getMemberById(id); // ID로 회원 조회
@@ -38,6 +40,7 @@ public class MemberController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND)); // 조회된 회원이 있으면 회원 정보 반환, 없으면 404 에러 반환
     }
 
+    // 모든 회원 조회
     @GetMapping
     public ResponseEntity<List<MemberDTO>> getAllMembers() {
         List<Member> members = memberService.getAllMembers(); // 모든 회원 조회
@@ -47,12 +50,14 @@ public class MemberController {
         return new ResponseEntity<>(memberDTOs, HttpStatus.OK); // 조회된 모든 회원 정보 반환
     }
 
+    // 특회원 삭제
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMember(@PathVariable Long id) {
         memberService.deleteMember(id); // 회원 삭제
         return new ResponseEntity<>(HttpStatus.NO_CONTENT); // HTTP 상태 코드 204 반환 (콘텐츠 없음)
     }
 
+    // 회원 정보 업데이트
     @PutMapping("/{id}")
     public ResponseEntity<MemberDTO> updateMember(@PathVariable Long id, @RequestParam String password, @RequestBody MemberDTO memberDTO) {
         Member updatedMember = convertToEntity(memberDTO); // DTO를 엔티티로 변환
@@ -61,12 +66,14 @@ public class MemberController {
         return new ResponseEntity<>(updatedDTO, HttpStatus.OK); // HTTP 상태 코드 200과 함께 업데이트된 회원 정보 반환
     }
 
+    // 회원 ID 중복 체크
     @GetMapping("checkUser_id")
     public ResponseEntity<Boolean> checkUserIdDuplicate(@RequestParam Long user_id) {
         boolean isDuplicate = memberService.checkUserIdDuplicate(user_id);
         return new ResponseEntity<>(isDuplicate, HttpStatus.OK);
     }
 
+    // 엔티티를 DTO로 변환
     private MemberDTO convertToDto(Member member) {
         MemberDTO memberDTO = new MemberDTO();
         memberDTO.setUser_id(member.getUser_id());
@@ -83,6 +90,7 @@ public class MemberController {
         return memberDTO;
     }
 
+    // DTO를 엔티티로 변환
     private Member convertToEntity(MemberDTO memberDTO) {
         Member member = new Member();
         member.setUser_id(memberDTO.getUser_id());

@@ -14,24 +14,29 @@ public class MemberService {
     @Autowired
     private MemberRepository memberRepository;
 
+    // 회원 저장
     public Member saveMember(Member member) {
         validateDuplicateMember(member);
         validateAllTermsAccepted(member);
         return memberRepository.save(member);
     }
 
+    // ID로 회원 조회
     public Optional<Member> getMemberById(Long id) {
         return memberRepository.findById(id);
     }
 
+    // 모든 회원 조회
     public List<Member> getAllMembers() {
         return memberRepository.findAll();
     }
 
+    // 회원 삭제
     public void deleteMember(Long id) {
         memberRepository.deleteById(id);
     }
 
+    // 회원 정보 업데이트
     public Member updateMember(Long user_id, String password, Member updatedMember) {
         Optional<Member> optionalMember = memberRepository.findById(user_id);
         if (optionalMember.isPresent()) {
@@ -50,6 +55,7 @@ public class MemberService {
         }
     }
 
+    // 회원 중복 체크
     private void validateDuplicateMember(Member member) {
         memberRepository.findById(member.getUser_id())
                 .ifPresent(m -> {
@@ -57,6 +63,7 @@ public class MemberService {
                 });
     }
 
+    // 모든 필수 항목 동의 체크
     private void validateAllTermsAccepted(Member member) {
         if (!Boolean.TRUE.equals(member.getIsAbove15()) ||
                 !Boolean.TRUE.equals(member.getTermsAccepted()) ||
@@ -66,6 +73,7 @@ public class MemberService {
         }
     }
 
+    // 회원 ID 중복 체크
     public boolean checkUserIdDuplicate(Long user_id) {
         return memberRepository.findById(user_id).isPresent();
     }
