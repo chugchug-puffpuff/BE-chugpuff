@@ -23,10 +23,23 @@ public class LikeService {
     @Autowired
     private UserRepository userRepository;
 
+    /**
+     * 주어진 게시글 번호에 대한 좋아요 수 반환
+     *
+     * @param boardNo 게시글 번호
+     * @return 좋아요 수
+     */
     public int getLikesCount(int boardNo) {
-        return likeRepository.countByBoard_BoardNo(boardNo); // 여기서 countByBoard_BoardNo를 호출합니다.
+        return likeRepository.countByBoard_BoardNo(boardNo);
     }
 
+    /**
+     * 주어진 게시글 번호와 사용자 ID로 좋아요 추가
+     *
+     * @param boardNo 게시글 번호
+     * @param userId 사용자 ID
+     * @return 생성된 좋아요 객체, 또는 게시글을 찾을 수 없는 경우 null
+     */
     public Like addLike(int boardNo, String userId) {
         Optional<Board> board = boardRepository.findById(boardNo);
         Optional<User> user = userRepository.findById(userId);
@@ -39,6 +52,12 @@ public class LikeService {
         return null;
     }
 
+    /**
+     * 주어진 게시글 번호와 사용자 ID로 좋아요 제거
+     *
+     * @param boardNo 게시글 번호
+     * @param userId 사용자 ID
+     */
     public void removeLike(int boardNo, String userId) {
         Optional<Board> board = boardRepository.findById(boardNo);
         Optional<User> user = userRepository.findById(userId);
@@ -50,6 +69,13 @@ public class LikeService {
         }
     }
 
+    /**
+     * 주어진 게시글 번호와 사용자 ID로 좋아요 상태 토글
+     * 만약 좋아요가 이미 존재하면 삭제하고, 그렇지 않으면 추가
+     *
+     * @param boardNo 게시글 번호
+     * @param userId 사용자 ID
+     */
     public void toggleLike(int boardNo, String userId) {
         Optional<Board> board = boardRepository.findById(boardNo);
         Optional<User> user = userRepository.findById(userId);
