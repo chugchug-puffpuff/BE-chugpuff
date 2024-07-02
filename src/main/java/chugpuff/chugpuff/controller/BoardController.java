@@ -1,7 +1,9 @@
 package chugpuff.chugpuff.controller;
 
 import chugpuff.chugpuff.entity.Board;
+import chugpuff.chugpuff.entity.Like;
 import chugpuff.chugpuff.service.BoardService;
+import chugpuff.chugpuff.service.LikeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,6 +15,8 @@ import java.util.Optional;
 public class BoardController {
     @Autowired
     private BoardService boardService;
+    @Autowired
+    private LikeService likeService;
 
     @PostMapping
     public Board createBoard(@RequestBody Board board) {
@@ -64,4 +68,10 @@ public class BoardController {
     public List<Board> getBoardsByCommentsDesc() {
         return boardService.findAllByCommentsDesc();
     }
+
+    @PostMapping("/{boardNo}/like")
+    public void toggleLike(@PathVariable int boardNo, @RequestParam String userId) {
+        likeService.toggleLike(boardNo, userId);
+    }
 }
+

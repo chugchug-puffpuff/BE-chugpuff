@@ -7,10 +7,16 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Table(name = "board_likes")
 public class Like {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int likesNo; //좋아요 번호
-    private int boardNo; //좋아요 누른 게시글 번호 참조하는 외래키
-    private String userId; //좋아요 누른 사용자의 ID
+
+    @ManyToOne
+    @JoinColumn(name = "board_no")
+    private Board board;
+
+    private String userId;
+
 }

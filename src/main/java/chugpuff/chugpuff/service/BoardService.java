@@ -2,10 +2,15 @@ package chugpuff.chugpuff.service;
 
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.entity.Category;
+import chugpuff.chugpuff.entity.Like;
 import chugpuff.chugpuff.repository.BoardRepository;
 import chugpuff.chugpuff.repository.LikeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,6 +24,8 @@ public class BoardService {
     private LikeRepository likeRepository;
     @Autowired
     private CategoryService categoryService;
+    @Autowired
+    private LikeService likeService;
 
     public Board save(Board board) {
         Category category = categoryService.findCategoryByName(board.getCategoryName());
@@ -59,8 +66,14 @@ public class BoardService {
         return boardRepository.findAllByCommentsCountDesc();
     }
 
-    public int getLikesCount(int boardNo) {
-        return likeRepository.countByBoardNo(boardNo);
+    @GetMapping("/{boardNo}/likes")
+    public int getLikesCount(@PathVariable int boardNo) {
+        return likeService.getLikesCount(boardNo);
+    }
+
+    @PostMapping("/{boardNo}/like")
+    public void toggleLike(@PathVariable int boardNo, @RequestParam String userId) {
+        likeService.toggleLike(boardNo, userId);
     }
 
 }
