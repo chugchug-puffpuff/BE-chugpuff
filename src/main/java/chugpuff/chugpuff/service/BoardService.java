@@ -138,4 +138,9 @@ public class BoardService {
     public void toggleLike(@PathVariable int boardNo, @RequestParam String userId) {
         likeService.toggleLike(boardNo, userId);
     }
+
+    // 제목이나 내용에 키워드가 포함된 게시글 찾기
+    public List<Board> searchByKeyword(String keyword) {
+        return boardRepository.findByBoardTitleContainingOrBoardContentContaining(keyword, keyword);
+    }
 }

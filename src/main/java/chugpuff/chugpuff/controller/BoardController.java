@@ -87,5 +87,11 @@ public class BoardController {
     public void toggleLike(@PathVariable int boardNo, @RequestParam String userId) {
         likeService.toggleLike(boardNo, userId);
     }
+
+    //게시글 검색
+    @GetMapping("/search")
+    public List<Board> searchBoards(@RequestParam String keyword) {
+        return boardService.searchByKeyword(keyword);
+    }
 }
 

@@ -19,7 +19,7 @@ public class Board {
     @JoinColumn(name = "user_id") // User 엔티티의 기본키를 외래키로 설정
     private User user; // 작성자
 
-    private String title; //게시글 제목
+    private String boardTitle; //게시글 제목
 
     @Column(columnDefinition = "TEXT")
     private String boardContent; //게시글 내용
