@@ -79,7 +79,7 @@ public class MemberController {
 
     // 회원 ID 중복 체크
     @GetMapping("/checkUserId")
-    public ResponseEntity<Boolean> checkUserIdDuplicate(@RequestParam String id) { // 수정
+    public ResponseEntity<Boolean> checkUserIdDuplicate(@RequestParam String id) {
         boolean isDuplicate = memberService.checkUserIdDuplicate(id);
         return new ResponseEntity<>(isDuplicate, HttpStatus.OK);
     }
