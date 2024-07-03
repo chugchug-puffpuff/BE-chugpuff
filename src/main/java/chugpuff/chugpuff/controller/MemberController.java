@@ -61,11 +61,15 @@ public class MemberController {
 
     // 회원 정보 업데이트
     @PutMapping("/{user_id}")
-    public ResponseEntity<MemberDTO> updateMember(@PathVariable Long user_id, @RequestParam String password, @RequestBody MemberDTO memberDTO) {
-        Member updatedMember = convertToEntity(memberDTO);
-        Member updated = memberService.updateMember(user_id, password, updatedMember);
-        MemberDTO updatedDTO = convertToDto(updated);
-        return new ResponseEntity<>(updatedDTO, HttpStatus.OK);
+    public ResponseEntity<Object> updateMember(@PathVariable Long user_id, @RequestParam String password, @RequestBody MemberDTO memberDTO) {
+        try {
+            Member updatedMember = convertToEntity(memberDTO);
+            Member updated = memberService.updateMember(user_id, password, updatedMember);
+            MemberDTO updatedDTO = convertToDto(updated);
+            return new ResponseEntity<>(updatedDTO, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     // 회원 ID 중복 체크
