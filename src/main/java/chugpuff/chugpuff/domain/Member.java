@@ -20,6 +20,9 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long user_id;
 
+    @Column(nullable = false, unique = true)
+    private String id;
+
     @Column(nullable = false)
     private String password;
 

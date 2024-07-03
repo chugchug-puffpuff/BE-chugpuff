@@ -20,7 +20,7 @@ public class MemberService {
 
     // 회원 저장
     public Member saveMember(Member member) {
-        if (checkUserIdDuplicate(member.getUser_id())) {
+        if (checkUserIdDuplicate(member.getId())) {
             throw new IllegalStateException("이미 존재하는 회원입니다.");
         }
         validateAllTermsAccepted(member);
@@ -28,8 +28,8 @@ public class MemberService {
     }
 
     // ID로 회원 조회
-    public Optional<Member> getMemberById(Long id) {
-        return memberRepository.findById(id);
+    public Optional<Member> getMemberById(Long user_id) {
+        return memberRepository.findById(user_id);
     }
 
     // 모든 회원 조회
@@ -38,8 +38,8 @@ public class MemberService {
     }
 
     // 회원 삭제
-    public void deleteMember(Long id) {
-        memberRepository.deleteById(id);
+    public void deleteMember(Long user_id) {
+        memberRepository.deleteById(user_id);
     }
 
     // 회원 정보 업데이트
@@ -72,7 +72,7 @@ public class MemberService {
     }
 
     // 회원 ID 중복 체크
-    public boolean checkUserIdDuplicate(Long user_id) {
-        return memberRepository.findById(user_id).isPresent();
+    public boolean checkUserIdDuplicate(String id) {
+        return memberRepository.findById(id).isPresent();
     }
 }

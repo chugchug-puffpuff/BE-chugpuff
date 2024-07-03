@@ -3,7 +3,6 @@ package chugpuff.chugpuff.controller;
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.dto.MemberDTO;
 import chugpuff.chugpuff.service.MemberService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,43 +35,43 @@ public class MemberController {
     }
 
     // ID로 특정 회원 조회
-    @GetMapping("/{id}")
-    public ResponseEntity<MemberDTO> getMemberById(@PathVariable Long id) {
-        Optional<Member> optionalMember = memberService.getMemberById(id); // ID로 회원 조회
+    @GetMapping("/{user_id}")
+    public ResponseEntity<MemberDTO> getMemberById(@PathVariable Long user_id) {
+        Optional<Member> optionalMember = memberService.getMemberById(user_id);
         return optionalMember.map(member -> new ResponseEntity<>(convertToDto(member), HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND)); // 조회된 회원이 있으면 회원 정보 반환, 없으면 404 에러 반환
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     // 모든 회원 조회
     @GetMapping
     public ResponseEntity<List<MemberDTO>> getAllMembers() {
-        List<Member> members = memberService.getAllMembers(); // 모든 회원 조회
+        List<Member> members = memberService.getAllMembers();
         List<MemberDTO> memberDTOs = members.stream()
-                .map(this::convertToDto) // 엔티티를 DTO로 변환
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
-        return new ResponseEntity<>(memberDTOs, HttpStatus.OK); // 조회된 모든 회원 정보 반환
+        return new ResponseEntity<>(memberDTOs, HttpStatus.OK);
     }
 
     // 회원 삭제
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMember(@PathVariable Long id) {
-        memberService.deleteMember(id); // 회원 삭제
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT); // HTTP 상태 코드 204 반환 (콘텐츠 없음)
+    @DeleteMapping("/{user_id}")
+    public ResponseEntity<Void> deleteMember(@PathVariable Long user_id) {
+        memberService.deleteMember(user_id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     // 회원 정보 업데이트
-    @PutMapping("/{id}")
-    public ResponseEntity<MemberDTO> updateMember(@PathVariable Long id, @RequestParam String password, @RequestBody MemberDTO memberDTO) {
-        Member updatedMember = convertToEntity(memberDTO); // DTO를 엔티티로 변환
-        Member updated = memberService.updateMember(id, password, updatedMember); // 회원 정보 업데이트
-        MemberDTO updatedDTO = convertToDto(updated); // 업데이트된 회원 엔티티를 DTO로 변환
-        return new ResponseEntity<>(updatedDTO, HttpStatus.OK); // HTTP 상태 코드 200과 함께 업데이트된 회원 정보 반환
+    @PutMapping("/{user_id}")
+    public ResponseEntity<MemberDTO> updateMember(@PathVariable Long user_id, @RequestParam String password, @RequestBody MemberDTO memberDTO) {
+        Member updatedMember = convertToEntity(memberDTO);
+        Member updated = memberService.updateMember(user_id, password, updatedMember);
+        MemberDTO updatedDTO = convertToDto(updated);
+        return new ResponseEntity<>(updatedDTO, HttpStatus.OK);
     }
 
     // 회원 ID 중복 체크
-    @GetMapping("checkUser_id")
-    public ResponseEntity<Boolean> checkUserIdDuplicate(@RequestParam Long user_id) {
-        boolean isDuplicate = memberService.checkUserIdDuplicate(user_id);
+    @GetMapping("/checkUserId")
+    public ResponseEntity<Boolean> checkUserIdDuplicate(@RequestParam String id) { // 수정
+        boolean isDuplicate = memberService.checkUserIdDuplicate(id);
         return new ResponseEntity<>(isDuplicate, HttpStatus.OK);
     }
 
@@ -80,6 +79,7 @@ public class MemberController {
     private MemberDTO convertToDto(Member member) {
         MemberDTO memberDTO = new MemberDTO();
         memberDTO.setUser_id(member.getUser_id());
+        memberDTO.setId(member.getId());
         memberDTO.setPassword(member.getPassword());
         memberDTO.setName(member.getName());
         memberDTO.setJob(member.getJob());
@@ -96,6 +96,7 @@ public class MemberController {
     private Member convertToEntity(MemberDTO memberDTO) {
         Member member = new Member();
         member.setUser_id(memberDTO.getUser_id());
+        member.setId(memberDTO.getId());
         member.setPassword(memberDTO.getPassword());
         member.setName(memberDTO.getName());
         member.setJob(memberDTO.getJob());

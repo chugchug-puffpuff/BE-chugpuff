@@ -14,6 +14,7 @@ import java.time.LocalDate;
 public class MemberDTO {
 
     private Long user_id;
+    private String id;
     private String password;
     private String name;
     private String job;
@@ -27,6 +28,7 @@ public class MemberDTO {
     public Member toEntity() {
         Member member = new Member();
         member.setUser_id(this.user_id);
+        member.setId(this.id);
         member.setPassword(this.password);
         member.setName(this.name);
         member.setJob(this.job);
