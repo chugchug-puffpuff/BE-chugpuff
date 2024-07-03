@@ -63,6 +63,11 @@ public class MemberController {
     @PutMapping("/{user_id}")
     public ResponseEntity<Object> updateMember(@PathVariable Long user_id, @RequestParam String password, @RequestBody MemberDTO memberDTO) {
         try {
+            // 비밀번호 일치 여부 검증
+            if (!memberService.isPasswordCorrect(user_id, password)) {
+                throw new IllegalArgumentException("Incorrect password.");
+            }
+
             Member updatedMember = convertToEntity(memberDTO);
             Member updated = memberService.updateMember(user_id, password, updatedMember);
             MemberDTO updatedDTO = convertToDto(updated);

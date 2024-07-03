@@ -61,6 +61,12 @@ public class MemberService {
         }
     }
 
+    // 비밀번호 일치 여부 확인
+    public boolean isPasswordCorrect(Long user_id, String password) {
+        Optional<Member> optionalMember = memberRepository.findById(user_id);
+        return optionalMember.map(member -> member.getPassword().equals(password)).orElse(false);
+    }
+
     // 모든 필수 항목 동의 체크
     private void validateAllTermsAccepted(Member member) {
         if (!Boolean.TRUE.equals(member.getIsAbove15()) ||
