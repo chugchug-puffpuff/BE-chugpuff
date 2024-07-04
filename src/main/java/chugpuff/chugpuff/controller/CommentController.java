@@ -1,5 +1,6 @@
 package chugpuff.chugpuff.controller;
 
+
 import chugpuff.chugpuff.entity.Comment;
 import chugpuff.chugpuff.service.CommentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ public class CommentController {
         comment.setBcNo(bcNo);
         return commentService.update(comment);
     }
+
     //댓글 삭제
     @DeleteMapping("/{bcNo}")
     public void deleteComment(@PathVariable int bcNo) {
