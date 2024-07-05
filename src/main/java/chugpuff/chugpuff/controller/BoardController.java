@@ -23,28 +23,28 @@ public class BoardController {
     @Autowired
     private CategoryService categoryService;
 
-    @PostMapping("/create")
+    @PostMapping
     public Board createBoard(@RequestBody Board board) {
         return boardService.save(board);
     }
 
-    @PutMapping("/update/{boardNo}")
+    @PutMapping("/{boardNo}")
     public Board updateBoard(@PathVariable int boardNo, @RequestBody Board board) {
         board.setBoardNo(boardNo);
         return boardService.update(board);
     }
 
-    @DeleteMapping("/delete/{boardNo}")
+    @DeleteMapping("/{boardNo}")
     public void deleteBoard(@PathVariable int boardNo) {
         boardService.delete(boardNo);
     }
 
-    @GetMapping("/get/{boardNo}")
+    @GetMapping("/{boardNo}")
     public Optional<Board> getBoard(@PathVariable int boardNo) {
         return boardService.findById(boardNo);
     }
 
-    @GetMapping("/getAll")
+    @GetMapping
     public List<Board> getAllBoards() {
         return boardService.findAll();
     }
@@ -54,22 +54,22 @@ public class BoardController {
         return boardService.findByCategory(categoryId);
     }
 
-    @GetMapping("/{boardNo}/getLikesCount")
+    @GetMapping("/{boardNo}/likes")
     public int getLikesCount(@PathVariable int boardNo) {
         return boardService.getLikesCount(boardNo);
     }
 
-    @GetMapping("/getBoardsByLikesDesc")
+    @GetMapping("/likes")
     public List<Board> getBoardsByLikesDesc() {
         return boardService.findAllByOrderByLikesDesc();
     }
 
-    @GetMapping("/getBoardsByRecent")
+    @GetMapping("/recent")
     public List<Board> getBoardsByRecent() {
         return boardService.findAllByOrderByBoardDateDesc();
     }
 
-    @GetMapping("/getBoardsByCommentsDesc")
+    @GetMapping("/comments")
     public List<Board> getBoardsByCommentsDesc() {
         return boardService.findAllByCommentsDesc();
     }

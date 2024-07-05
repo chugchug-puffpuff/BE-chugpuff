@@ -4,6 +4,7 @@ import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.service.BoardService;
 import chugpuff.chugpuff.service.CategoryService;
 import chugpuff.chugpuff.service.LikeService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
@@ -14,12 +15,14 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -39,6 +42,9 @@ public class BoardControllerTest {
     @MockBean
     private CategoryService categoryService;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private Board board;
 
     @BeforeEach
@@ -55,7 +61,7 @@ public class BoardControllerTest {
     public void testCreateBoard() throws Exception {
         when(boardService.save(any(Board.class))).thenReturn(board);
 
-        mockMvc.perform(post("/boards")
+        mockMvc.perform(post("/api/board").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"boardTitle\":\"Test Title\",\"boardContent\":\"Test Content\"}"))
                 .andExpect(status().isOk())
@@ -70,7 +76,7 @@ public class BoardControllerTest {
     public void testUpdateBoard() throws Exception {
         when(boardService.update(any(Board.class))).thenReturn(board);
 
-        mockMvc.perform(put("/boards/{boardNo}", 1)
+        mockMvc.perform(put("/api/board/{boardNo}", 1).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"boardTitle\":\"Test Title\",\"boardContent\":\"Test Content\"}"))
                 .andExpect(status().isOk())
@@ -85,7 +91,7 @@ public class BoardControllerTest {
     public void testDeleteBoard() throws Exception {
         doNothing().when(boardService).delete(1);
 
-        mockMvc.perform(delete("/boards/{boardNo}", 1))
+        mockMvc.perform(delete("/api/board/{boardNo}", 1).with(csrf()))
                 .andExpect(status().isOk());
 
         verify(boardService, times(1)).delete(1);
@@ -96,7 +102,7 @@ public class BoardControllerTest {
     public void testGetBoard() throws Exception {
         when(boardService.findById(1)).thenReturn(Optional.of(board));
 
-        mockMvc.perform(get("/boards/{boardNo}", 1))
+        mockMvc.perform(get("/api/board/{boardNo}", 1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.boardTitle").value("Test Title"))
                 .andExpect(jsonPath("$.boardContent").value("Test Content"));
@@ -114,7 +120,7 @@ public class BoardControllerTest {
 
         when(boardService.findAll()).thenReturn(Arrays.asList(board, board2));
 
-        mockMvc.perform(get("/boards"))
+        mockMvc.perform(get("/api/board"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].boardTitle").value("Test Title"))
                 .andExpect(jsonPath("$[1].boardTitle").value("Title 2"));
@@ -132,7 +138,7 @@ public class BoardControllerTest {
 
         when(boardService.searchByKeyword("Test")).thenReturn(Arrays.asList(board, board2));
 
-        mockMvc.perform(get("/boards/search")
+        mockMvc.perform(get("/api/board/search")
                         .param("keyword", "Test"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].boardTitle").value("Test Title"))
