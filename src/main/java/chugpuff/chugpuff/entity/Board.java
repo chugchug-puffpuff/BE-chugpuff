@@ -29,7 +29,7 @@ public class Board {
     private int likes; //게시글 좋아요 수
 
     @ManyToOne
-    @JoinColumn(name = "category_id")
+    @JoinColumn(name = "category_id", nullable = false)
     private Category category; //카테고리 ID 외래키
 
     @Transient
@@ -37,5 +37,15 @@ public class Board {
 
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments;
+
+    public int getCategoryId() {
+        return category != null ? category.getCategoryId() : 0;
+    }
+
+    public void setCategoryId(int categoryId) {
+        Category category = new Category();
+        category.setCategoryId(categoryId);
+        this.category = category;
+    }
 
 }

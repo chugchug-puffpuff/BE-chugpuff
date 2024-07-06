@@ -14,4 +14,8 @@ public class Category {
 
     @Column(nullable = false)
     private String categoryName; //카테고리 이름
+
+    public void setId(int id) {
+        this.categoryId = id;
+    }
 }
