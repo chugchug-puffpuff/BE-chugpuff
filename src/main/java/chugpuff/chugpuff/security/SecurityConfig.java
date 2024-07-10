@@ -38,6 +38,9 @@ public class SecurityConfig {
                                 // 로그인 유지 설정
                                 .key("uniqueAndSecret")
                                 .tokenValiditySeconds(604800) // 7일 동안 유지
+                )
+                .csrf(csrf ->
+                        csrf.disable() // CSRF 보호 비활성화
                 );
 
         return http.build();
