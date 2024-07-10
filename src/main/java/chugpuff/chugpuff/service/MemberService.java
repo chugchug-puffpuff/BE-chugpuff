@@ -3,6 +3,7 @@ package chugpuff.chugpuff.service;
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,10 +13,12 @@ import java.util.Optional;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public MemberService(MemberRepository memberRepository) {
+    public MemberService(MemberRepository memberRepository, PasswordEncoder passwordEncoder) {
         this.memberRepository = memberRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // 회원 저장
@@ -24,6 +27,7 @@ public class MemberService {
             throw new IllegalStateException("이미 존재하는 회원입니다.");
         }
         validateAllTermsAccepted(member);
+        member.setPassword(passwordEncoder.encode(member.getPassword()));
         return memberRepository.save(member);
     }
 
