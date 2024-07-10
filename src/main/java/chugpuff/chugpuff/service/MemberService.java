@@ -51,8 +51,9 @@ public class MemberService {
         Optional<Member> optionalMember = memberRepository.findById(user_id);
         if (optionalMember.isPresent()) {
             Member member = optionalMember.get();
-            if (member.getPassword().equals(password)) {
-                member.setPassword(updatedMember.getPassword());
+            // 비밀번호 검증
+            if (passwordEncoder.matches(password, member.getPassword())) {
+                member.setPassword(passwordEncoder.encode(updatedMember.getPassword()));
                 member.setEmail(updatedMember.getEmail());
                 member.setJob(updatedMember.getJob());
                 member.setJobKeyword(updatedMember.getJobKeyword());
@@ -68,7 +69,7 @@ public class MemberService {
     // 비밀번호 일치 여부 확인
     public boolean isPasswordCorrect(Long user_id, String password) {
         Optional<Member> optionalMember = memberRepository.findById(user_id);
-        return optionalMember.map(member -> member.getPassword().equals(password)).orElse(false);
+        return optionalMember.map(member -> passwordEncoder.matches(password, member.getPassword())).orElse(false);
     }
 
     // 모든 필수 항목 동의 체크
