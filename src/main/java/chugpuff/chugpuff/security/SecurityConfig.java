@@ -24,6 +24,7 @@ public class SecurityConfig {
                         formLogin
                                 // 로그인 설정
                                 .defaultSuccessUrl("/home", true)
+                                .failureUrl("/login?error")
                                 .permitAll()
                 )
                 .logout(logout ->

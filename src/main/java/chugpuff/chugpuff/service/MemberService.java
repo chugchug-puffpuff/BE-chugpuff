@@ -88,8 +88,14 @@ public class MemberService {
     }
 
     // 로그인 인증
-    public Member authenticate(String id, String password) {
-        Optional<Member> memberOpt = memberRepository.findById(id);
-        return memberOpt.filter(member -> passwordEncoder.matches(password, member.getPassword())).orElse(null);
+    public Member authenticate(String username, String password) {
+        Member member = memberRepository.findById(username)
+                .orElse(null);
+
+        if (member != null && passwordEncoder.matches(password, member.getPassword())) {
+            return member;
+        } else {
+            return null;
+        }
     }
 }
