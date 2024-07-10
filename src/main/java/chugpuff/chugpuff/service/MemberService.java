@@ -86,4 +86,10 @@ public class MemberService {
     public boolean checkUserIdDuplicate(String id) {
         return memberRepository.findById(id).isPresent();
     }
+
+    // 로그인 인증
+    public Member authenticate(String id, String password) {
+        Optional<Member> memberOpt = memberRepository.findById(id);
+        return memberOpt.filter(member -> passwordEncoder.matches(password, member.getPassword())).orElse(null);
+    }
 }
