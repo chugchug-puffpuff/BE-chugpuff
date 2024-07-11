@@ -12,7 +12,7 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int categoryId; //카테고리 ID
 
-    @Column(nullable = false)
+    @Column(name = "category_name")
     private String categoryName; //카테고리 이름
 
     public void setId(int id) {

@@ -1,27 +1,43 @@
 package chugpuff.chugpuff.service;
 
+import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.entity.Like;
-import chugpuff.chugpuff.entity.User;
 import chugpuff.chugpuff.repository.BoardRepository;
 import chugpuff.chugpuff.repository.LikeRepository;
-import chugpuff.chugpuff.repository.UserRepository;
+import chugpuff.chugpuff.repository.MemberRepository;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Optional;
 
 @Service
 public class LikeService {
 
+    private final LikeRepository likeRepository;
+    private BoardService boardService; // Avoid direct circular reference if possible
+
+    public void setBoardService(BoardService boardService) {
+        this.boardService = boardService;
+    }
     @Autowired
-    private LikeRepository likeRepository;
+    public LikeService(LikeRepository likeRepository) {
+        this.likeRepository = likeRepository;
+    }
 
     @Autowired
     private BoardRepository boardRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private MemberRepository memberRepository;
+
 
     /**
      * 주어진 게시글 번호에 대한 좋아요 수 반환
@@ -33,29 +49,23 @@ public class LikeService {
         return likeRepository.countByBoard_BoardNo(boardNo);
     }
 
-    /**
-     * 주어진 게시글 번호와 사용자 ID로 좋아요 상태 토글
-     * 만약 좋아요가 이미 존재하면 삭제하고, 그렇지 않으면 추가
-     *
-     * @param boardNo 게시글 번호
-     * @param userId 사용자 ID
-     */
-    public void toggleLike(int boardNo, String userId) {
-        Optional<Board> board = boardRepository.findById(boardNo);
-        Optional<User> user = userRepository.findById(userId);
-        if (board.isPresent() && user.isPresent()) {
-            Optional<Like> likeOptional = likeRepository.findByBoardAndUserId(board.get(), userId);
-            if (likeOptional.isPresent()) {
-                //좋아요가 이미 존재하면 삭제
-                likeRepository.delete(likeOptional.get());
-            } else {
-                //좋아요가 존재하지 않으면 추가
-                Like newLike = new Like();
-                newLike.setBoard(board.get());
-                newLike.setUser(user.get());
-                likeRepository.save(newLike);
-            }
+    @Transactional
+    public void toggleLike(int boardNo, Member member) {
+        Board board = boardService.findById(boardNo)
+                .orElseThrow(() -> new EntityNotFoundException("Board not found with id: " + boardNo));
+
+        Optional<Like> likeOptional = likeRepository.findByBoardAndMember(board, member);
+        if (likeOptional.isPresent()) {
+            likeRepository.delete(likeOptional.get());
+            board.setLikes(board.getLikes() - 1); // 좋아요 수 감소
+        } else {
+            Like like = new Like();
+            like.setBoard(board);
+            like.setMember(member);
+            likeRepository.save(like);
+            board.setLikes(board.getLikes() + 1); // 좋아요 수 증가
         }
+        boardService.update(board); // Board 엔티티 업데이트
     }
 }
 

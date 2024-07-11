@@ -1,37 +1,44 @@
 package chugpuff.chugpuff.controller;
 
+import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.entity.Board;
+import chugpuff.chugpuff.entity.Category;
+import chugpuff.chugpuff.entity.MemberEntity;
+import chugpuff.chugpuff.repository.MemberRepository;
 import chugpuff.chugpuff.service.BoardService;
-import chugpuff.chugpuff.service.CategoryService;
 import chugpuff.chugpuff.service.LikeService;
+import chugpuff.chugpuff.service.CategoryService;
+import chugpuff.chugpuff.service.MemberService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
-import java.util.Arrays;
+import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(BoardController.class)
-@AutoConfigureMockMvc
 public class BoardControllerTest {
 
     @Autowired
-    private MockMvc mockMvc; //MockMvc를 통해 HTTP 요청과 응답 테스트
+    private MockMvc mockMvc;
 
     @MockBean
     private BoardService boardService;
@@ -42,133 +49,126 @@ public class BoardControllerTest {
     @MockBean
     private CategoryService categoryService;
 
+    @MockBean
+    private MemberService memberService;
+
+    @MockBean
+    private MemberRepository memberRepository;
+
     @Autowired
-    private ObjectMapper objectMapper; // JSON 변환을 위한 ObjectMapper
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private WebApplicationContext context;
 
     private Board board;
+    private Member member;
+    private Category category;
 
     @BeforeEach
-    public void setup() {
-        MockitoAnnotations.openMocks(this); // Mockito 어노테이션 초기화
+    void setUp() {
+        member = new Member();
+        member.setUser_id(1L);
+        member.setName("Test User");
+
+        category = new Category();
+        category.setCategoryId(1);
+        category.setCategoryName("Test Category");
+
         board = new Board();
         board.setBoardNo(1);
         board.setBoardTitle("Test Title");
         board.setBoardContent("Test Content");
-        board.setCategoryId(1);
+        board.setBoardDate(LocalDateTime.now());
+        board.setBoardmodifiedDate(LocalDateTime.now());
+        board.setLikes(0);
+        board.setMember(member);
+        board.setCategory(category);
+
+        // MockMvc with security setup
+        mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
     }
 
     @Test
-    @WithMockUser(username = "user1", roles = {"USER"})
-    public void testCreateBoard() throws Exception {
-        // Mocking: boardService.save가 호출될 때 board 객체 반환
+    @WithMockUser(username = "testUser", roles = {"USER"})
+    void testCreateBoard() throws Exception {
+        when(memberRepository.findById(any(Long.class))).thenReturn(Optional.of(member));
         when(boardService.save(any(Board.class))).thenReturn(board);
 
-        // HTTP POST 요청을 통해 /api/board 엔드포인트 호출 및 기대 결과 확인
         mockMvc.perform(post("/api/board").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
+                        .param("userId", "1")
                         .content(objectMapper.writeValueAsString(board)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.boardTitle").value("Test Title"))
-                .andExpect(jsonPath("$.boardContent").value("Test Content"));
-
-        // boardService.save가 한 번 호출되었는지 확인
-        verify(boardService, times(1)).save(any(Board.class));
+                .andExpect(content().json(objectMapper.writeValueAsString(board)));
     }
 
     @Test
-    @WithMockUser(username = "user1", roles = {"USER"})
-    public void testUpdateBoard() throws Exception {
-        // Mocking: boardService.update가 호출될 때 board 객체 반환
-        when(boardService.update(any(Board.class))).thenReturn(board);
+    @WithMockUser(username = "testUser", roles = {"USER"})
+    void testGetBoardById() throws Exception {
+        when(boardService.findById(anyInt())).thenReturn(Optional.of(board));
 
-        // HTTP PUT 요청을 통해 /api/board/{boardNo} 엔드포인트 호출 및 기대 결과 확인
+        mockMvc.perform(get("/api/board/{boardNo}", 1).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.boardNo").value(1))
+                .andExpect(jsonPath("$.boardTitle").value("Test Title"))
+                .andExpect(jsonPath("$.boardContent").value("Test Content"));
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = {"USER"})
+    void testUpdateBoard() throws Exception {
+        Board updatedBoard = new Board();
+        updatedBoard.setBoardNo(1);
+        updatedBoard.setBoardTitle("Updated Title");
+        updatedBoard.setBoardContent("Updated Content");
+        updatedBoard.setBoardDate(LocalDateTime.now());
+        updatedBoard.setBoardmodifiedDate(LocalDateTime.now());
+        updatedBoard.setLikes(0);
+        updatedBoard.setMember(member);
+        updatedBoard.setCategory(category);
+
+        when(boardService.update(any(Board.class))).thenReturn(updatedBoard);
+
         mockMvc.perform(put("/api/board/{boardNo}", 1).with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(board)))
+                        .content(objectMapper.writeValueAsString(updatedBoard)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.boardTitle").value("Test Title"))
-                .andExpect(jsonPath("$.boardContent").value("Test Content"));
-
-        // boardService.update가 한 번 호출되었는지 확인
-        verify(boardService, times(1)).update(any(Board.class));
+                .andExpect(content().json(objectMapper.writeValueAsString(updatedBoard)));
     }
 
     @Test
-    @WithMockUser(username = "user1", roles = {"USER"})
-    public void testDeleteBoard() throws Exception {
-        // Mocking: boardService.delete가 호출될 때 아무 것도 하지 않음
-        doNothing().when(boardService).delete(1);
+    @WithMockUser(username = "testUser", roles = {"USER"})
+    void testDeleteBoard() throws Exception {
+        doNothing().when(boardService).delete(anyInt());
 
-        // HTTP DELETE 요청을 통해 /api/board/{boardNo} 엔드포인트 호출 및 기대 결과 확인
-        mockMvc.perform(delete("/api/board/{boardNo}", 1).with(csrf()))
-                .andExpect(status().isOk());
-
-        // boardService.delete가 한 번 호출되었는지 확인
-        verify(boardService, times(1)).delete(1);
+        mockMvc.perform(delete("/api/board/{boardNo}", 1).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
     }
 
     @Test
-    @WithMockUser(username = "user1", roles = {"USER"})
-    public void testGetBoard() throws Exception {
-        // Mocking: boardService.findById가 호출될 때 Optional로 감싼 board 객체 반환
-        when(boardService.findById(1)).thenReturn(Optional.of(board));
+    @WithMockUser(username = "testUser", roles = {"USER"})
+    void testGetAllBoards() throws Exception {
+        when(boardService.findAll()).thenReturn(List.of(board));
 
-        // HTTP GET 요청을 통해 /api/board/{boardNo} 엔드포인트 호출 및 기대 결과 확인
-        mockMvc.perform(get("/api/board/{boardNo}", 1))
+        mockMvc.perform(get("/api/board")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.boardTitle").value("Test Title"))
-                .andExpect(jsonPath("$.boardContent").value("Test Content"));
-
-        // boardService.findById가 한 번 호출되었는지 확인
-        verify(boardService, times(1)).findById(1);
+                .andExpect(content().json(objectMapper.writeValueAsString(List.of(board))));
     }
 
     @Test
-    @WithMockUser(username = "user1", roles = {"USER"})
-    public void testGetAllBoards() throws Exception {
-        Board board2 = new Board();
-        board2.setBoardNo(2);
-        board2.setBoardTitle("Title 2");
-        board2.setBoardContent("Content 2");
-        board2.setCategoryId(2);
+    @WithMockUser(username = "testUser", roles = {"USER"})
+    void testSearchBoardsByKeyword() throws Exception {
+        when(boardService.searchByKeyword("Test")).thenReturn(List.of(board));
 
-        // Mocking: boardService.findAll이 호출될 때 두 개의 board 객체를 포함한 리스트 반환
-        when(boardService.findAll()).thenReturn(Arrays.asList(board, board2));
-
-        // HTTP GET 요청을 통해 /api/board 엔드포인트 호출 및 기대 결과 확인
-        mockMvc.perform(get("/api/board"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].boardTitle").value("Test Title")) // boardTitle로 변경
-                .andExpect(jsonPath("$[0].boardContent").value("Test Content")) // boardContent로 변경
-                .andExpect(jsonPath("$[1].boardTitle").value("Title 2")) // boardTitle로 변경
-                .andExpect(jsonPath("$[1].boardContent").value("Content 2")); // boardContent로 변경
-
-        // boardService.findAll이 한 번 호출되었는지 확인
-        verify(boardService, times(1)).findAll();
-    }
-
-    @Test
-    @WithMockUser(username = "user1", roles = {"USER"})
-    public void testSearchBoards() throws Exception {
-        Board board2 = new Board();
-        board2.setBoardNo(2);
-        board2.setBoardTitle("Another Test Title");
-        board2.setBoardContent("Another Test Content");
-        board2.setCategoryId(2);
-
-    // Mocking: boardService.searchByKeyword가 호출될 때 두 개의 board 객체를 포함한 리스트 반환
-        when(boardService.searchByKeyword("Test")).thenReturn(Arrays.asList(board, board2));
-
-        // HTTP GET 요청을 통해 /api/board/search 엔드포인트 호출 및 기대 결과 확인
         mockMvc.perform(get("/api/board/search")
-                        .param("keyword", "Test"))
+                        .param("keyword", "Test")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].boardTitle").value("Test Title")) // boardTitle로 변경
-                .andExpect(jsonPath("$[0].boardContent").value("Test Content")) // boardContent로 변경
-                .andExpect(jsonPath("$[1].boardTitle").value("Another Test Title")) // boardTitle로 변경
-                .andExpect(jsonPath("$[1].boardContent").value("Another Test Content")); // boardContent로 변경
-
-        // boardService.searchByKeyword가 한 번 호출되었는지 확인
-        verify(boardService, times(1)).searchByKeyword("Test");
+                .andExpect(content().json(objectMapper.writeValueAsString(List.of(board))));
     }
 }
+

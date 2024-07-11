@@ -1,5 +1,8 @@
 package chugpuff.chugpuff.entity;
 
+import chugpuff.chugpuff.domain.Member;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,14 +13,15 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Board {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int boardNo; //게시글 번호
 
-    @ManyToOne
-    @JoinColumn(name = "user_id") // User 엔티티의 기본키를 외래키로 설정
-    private User user; // 작성자
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false) // Member 엔티티의 기본키를 외래키로 설정
+    private Member member; // 작성자
 
     private String boardTitle; //게시글 제목
 
@@ -28,24 +32,16 @@ public class Board {
     private LocalDateTime boardmodifiedDate; //게시글 수정일
     private int likes; //게시글 좋아요 수
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category; //카테고리 ID 외래키
 
-    @Transient
+    @JsonProperty
+    @Column(name = "category_name")
     private String categoryName;
 
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments;
 
-    public int getCategoryId() {
-        return category != null ? category.getCategoryId() : 0;
-    }
-
-    public void setCategoryId(int categoryId) {
-        Category category = new Category();
-        category.setCategoryId(categoryId);
-        this.category = category;
-    }
 
 }

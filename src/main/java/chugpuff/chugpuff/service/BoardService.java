@@ -1,12 +1,17 @@
 package chugpuff.chugpuff.service;
 
+import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.entity.Category;
 import chugpuff.chugpuff.entity.Like;
 import chugpuff.chugpuff.repository.BoardRepository;
+import chugpuff.chugpuff.repository.CategoryRepository;
 import chugpuff.chugpuff.repository.LikeRepository;
+import chugpuff.chugpuff.repository.MemberRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,28 +24,38 @@ import java.util.Optional;
 @Service
 public class BoardService {
 
-    @Autowired
-    private BoardRepository boardRepository; // Board 엔티티의 데이터 액세스를 위한 Repository
+    private final BoardRepository boardRepository;
+    private LikeService likeService;
+    private final CategoryRepository categoryRepository;
+    private final MemberRepository memberRepository;
 
+    public void setLikeService(LikeService likeService) {
+        this.likeService = likeService;
+    }
     @Autowired
-    private LikeRepository likeRepository; // Like 엔티티의 데이터 액세스를 위한 Repository
-
-    @Autowired
-    private CategoryService categoryService; // 카테고리 관련 비즈니스 로직을 처리하는 서비스 클래스
-
-    @Autowired
-    private LikeService likeService; // 좋아요 관련 비즈니스 로직을 처리하는 서비스 클래스
+    public BoardService(BoardRepository boardRepository, CategoryRepository categoryRepository, MemberRepository memberRepository) {
+        this.boardRepository = boardRepository;
+        this.categoryRepository = categoryRepository;
+        this.memberRepository = memberRepository;
+    }
 
     /**
      * 게시글 저장 메서드
      * @param board 저장할 게시글 엔티티
      * @return 저장된 게시글 엔티티
      */
+    @Transactional
     public Board save(Board board) {
-        // 게시글에 설정된 카테고리 이름으로 실제 카테고리 엔티티를 조회하여 설정
-        Category category = categoryService.findCategoryByName(board.getCategoryName());
+        // 카테고리 아이디로 카테고리 이름을 찾아서 설정
+        Category category = categoryRepository.findById(board.getCategory().getCategoryId())
+                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: " + board.getCategory().getCategoryId()));
         board.setCategory(category);
+        board.setCategoryName(category.getCategoryName());
 
+        // Member가 존재하는지 확인
+        Member member = memberRepository.findById(board.getMember().getUser_id())
+                .orElseThrow(() -> new EntityNotFoundException("Member not found with id: " + board.getMember().getUser_id()));
+        board.setMember(member);
         // 게시글 작성일 설정
         board.setBoardDate(LocalDateTime.now());
 
@@ -135,8 +150,10 @@ public class BoardService {
      * @param userId 좋아요를 토글할 유저 ID
      */
     @PostMapping("/{boardNo}/like")
-    public void toggleLike(@PathVariable int boardNo, @RequestParam String userId) {
-        likeService.toggleLike(boardNo, userId);
+    public void toggleLike(@PathVariable int boardNo, @RequestParam Long userId) {
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Member not found with id: " + userId));
+        likeService.toggleLike(boardNo, member);
     }
 
     // 제목이나 내용에 키워드가 포함된 게시글 찾기
