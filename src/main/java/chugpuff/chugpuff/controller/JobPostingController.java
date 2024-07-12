@@ -20,7 +20,7 @@ public class JobPostingController {
     }
 
     @PostMapping
-    public void fetchAndSaveJobPostings() {
-        jobPostingService.fetchAndSaveJobPostings();
+    public void fetchAndSaveAllJobPostings() {
+        jobPostingService.fetchAndSaveAllJobPostings();
     }
 }
