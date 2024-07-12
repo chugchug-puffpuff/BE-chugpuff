@@ -65,9 +65,9 @@ public class MemberControllerTest {
         member.setUser_id(user_id);
         member.setId("test1");
 
-        when(memberService.getMemberById(user_id)).thenReturn(Optional.of(member));
+        when(memberService.getMemberByUser_id(user_id)).thenReturn(Optional.of(member));
 
-        ResponseEntity<MemberDTO> response = memberController.getMemberById(user_id);
+        ResponseEntity<MemberDTO> response = memberController.getMemberByUser_id(user_id);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(member.getUser_id(), response.getBody().getUser_id());

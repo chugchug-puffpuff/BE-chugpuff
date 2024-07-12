@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
+import static org.springframework.data.jpa.domain.AbstractPersistable_.id;
+
 @Service
 public class MemberService {
 
@@ -31,9 +33,14 @@ public class MemberService {
         return memberRepository.save(member);
     }
 
-    // ID로 회원 조회
+    // user_id로 회원 조회
     public Optional<Member> getMemberByUser_id(Long user_id) {
         return memberRepository.findById(user_id);
+    }
+
+    // ID로 회원 조회
+    public Optional<Member> getMemberByUsername(String username) {
+        return memberRepository.findById(username);
     }
 
     // 모든 회원 조회
