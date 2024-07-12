@@ -9,7 +9,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 public class AuthController {
@@ -19,9 +21,10 @@ public class AuthController {
 
     // 로그인
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestParam String username, @RequestParam String password) {
+    @ResponseBody
+    public ResponseEntity<String> login(@RequestBody String id, @RequestParam String password) {
         try {
-            Member member = memberService.authenticate(username, password);
+            Member member = memberService.authenticate(id, password);
             if (member != null) {
                 return ResponseEntity.ok("Login successful");
             } else {
