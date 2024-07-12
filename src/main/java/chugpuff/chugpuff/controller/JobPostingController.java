@@ -5,24 +5,22 @@ import chugpuff.chugpuff.service.JobPostingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/job-postings")
+@RequestMapping("/api/jobpostings")
 public class JobPostingController {
 
     @Autowired
     private JobPostingService jobPostingService;
 
-    @PostMapping
-    public JobPosting createJobPosting(@RequestParam String jobId) {
-        return jobPostingService.saveJobPosting(jobId);
+    @GetMapping
+    public List<JobPosting> getAllJobPostings() {
+        return jobPostingService.getAllJobPostings();
     }
 
-    @GetMapping("/{j_id}")
-    public String getJobPosting(@PathVariable Long j_id) {
-        JobPosting jobPosting = jobPostingService.getJobPosting(j_id);
-        if (jobPosting != null) {
-            return jobPostingService.fetchJobPosting(jobPosting.getJobId());
-        }
-        return "Job posting not found";
+    @PostMapping
+    public void fetchAndSaveJobPostings() {
+        jobPostingService.fetchAndSaveJobPostings();
     }
 }

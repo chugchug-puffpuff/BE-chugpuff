@@ -8,7 +8,9 @@ public class JobPosting {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long j_id; // 데이터베이스에서 자동으로 증가하는 기본 키
 
-    private String jobId; //사람인 API의 공고 번호
+    @Column(unique = true) // 고유 제약 조건 설정
+    private String jobNo; //사람인 API의 공고 번호
+    private int scraps;
 
     // Getters and setters
     public Long getJ_id() {
@@ -19,11 +21,19 @@ public class JobPosting {
         this.j_id = j_id;
     }
 
-    public String getJobId() {
-        return jobId;
+    public String getJobNo() {
+        return jobNo;
     }
 
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
+    public void setJobNo(String jobNo) {
+        this.jobNo = jobNo;
+    }
+
+    public int getScraps() {
+        return scraps;
+    }
+
+    public void setScraps(int scraps) {
+        this.scraps = scraps;
     }
 }
