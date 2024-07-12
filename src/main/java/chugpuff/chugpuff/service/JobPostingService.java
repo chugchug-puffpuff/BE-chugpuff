@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
@@ -76,6 +77,7 @@ public class JobPostingService {
             try {
                 JSONObject jsonObject = new JSONObject(response.getBody());
                 JSONObject jobsObject = jsonObject.getJSONObject("jobs");
+                JSONArray jobsArray = jobsObject.getJSONArray("job");
 
                 if (jobsObject.has("total")) {
                     return jobsObject.getInt("total"); // 전체 공고 수 반환
@@ -92,6 +94,35 @@ public class JobPostingService {
             System.err.println("HTTP error: " + response.getStatusCode());
             return 0; // 예외 상황에서는 0을 반환하거나 다른 적절한 처리를 수행
         }
+    }
+
+    public JSONArray getJobDetailsFromAPI() {
+        List<JobPosting> jobPostings = getAllJobPostings();
+        JSONArray jobDetailsArray = new JSONArray();
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        for (JobPosting jobPosting : jobPostings) {
+            String jobNo = jobPosting.getJobNo();
+            String url = API_URL + "?access-key=" + API_KEY + "&id=" + jobNo;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Accept", "application/json");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            try {
+                ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+                if (response.getStatusCode() == HttpStatus.OK) {
+                    JSONObject jobDetail = new JSONObject(response.getBody());
+                    jobDetailsArray.put(jobDetail);
+                }
+            } catch (HttpClientErrorException e) {
+                System.err.println("HTTP error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
+            }
+        }
+
+        return jobDetailsArray;
     }
 }
 
