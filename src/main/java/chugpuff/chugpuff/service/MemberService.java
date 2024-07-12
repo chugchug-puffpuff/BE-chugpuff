@@ -32,7 +32,7 @@ public class MemberService {
     }
 
     // ID로 회원 조회
-    public Optional<Member> getMemberById(Long user_id) {
+    public Optional<Member> getMemberByUser_id(Long user_id) {
         return memberRepository.findById(user_id);
     }
 
@@ -87,8 +87,8 @@ public class MemberService {
     }
 
     // 로그인 인증
-    public Member authenticate(String username, String password) {
-        Member member = memberRepository.findById(username)
+    public Member authenticate(String id, String password) {
+        Member member = memberRepository.findById(id)
                 .orElse(null);
 
         if (member != null && passwordEncoder.matches(password, member.getPassword())) {

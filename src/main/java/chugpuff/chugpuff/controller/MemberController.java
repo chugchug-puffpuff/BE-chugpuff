@@ -38,8 +38,8 @@ public class MemberController {
 
     // ID로 특정 회원 조회
     @GetMapping("/{user_id}")
-    public ResponseEntity<MemberDTO> getMemberById(@PathVariable Long user_id) {
-        Optional<Member> optionalMember = memberService.getMemberById(user_id);
+    public ResponseEntity<MemberDTO> getMemberByUser_id(@PathVariable Long user_id) {
+        Optional<Member> optionalMember = memberService.getMemberByUser_id(user_id);
         return optionalMember.map(member -> new ResponseEntity<>(convertToDto(member), HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
