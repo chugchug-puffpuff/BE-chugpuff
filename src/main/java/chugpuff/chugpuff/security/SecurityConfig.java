@@ -8,6 +8,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import static org.springframework.security.config.Customizer.withDefaults;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -17,7 +19,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/login", "/members").permitAll()
+                                .requestMatchers("/login", "/members/**").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .formLogin(formLogin ->
@@ -27,6 +29,7 @@ public class SecurityConfig {
                                 .failureUrl("/login?error")
                                 .permitAll()
                 )
+                .httpBasic(withDefaults())
                 .logout(logout ->
                         logout
                                 // 로그아웃 설정
