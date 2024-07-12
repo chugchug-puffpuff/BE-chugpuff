@@ -21,7 +21,6 @@ public class MemberDTO {
     private String jobKeyword;
     private String email;
     private Boolean isAbove15;
-    private Boolean termsAccepted;
     private Boolean privacyPolicyAccepted;
     private Boolean recordingAccepted;
 
@@ -35,7 +34,6 @@ public class MemberDTO {
         member.setJobKeyword(this.jobKeyword);
         member.setEmail(this.email);
         member.setIsAbove15(this.isAbove15);
-        member.setTermsAccepted(this.termsAccepted);
         member.setPrivacyPolicyAccepted(this.privacyPolicyAccepted);
         member.setRecordingAccepted(this.recordingAccepted);
         return member;

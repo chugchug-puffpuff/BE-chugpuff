@@ -75,7 +75,6 @@ public class MemberService {
     // 모든 필수 항목 동의 체크
     private void validateAllTermsAccepted(Member member) {
         if (!Boolean.TRUE.equals(member.getIsAbove15()) ||
-                !Boolean.TRUE.equals(member.getTermsAccepted()) ||
                 !Boolean.TRUE.equals(member.getPrivacyPolicyAccepted()) ||
                 !Boolean.TRUE.equals(member.getRecordingAccepted())) {
             throw new IllegalArgumentException("모든 필수 항목에 동의해야 회원가입이 가능합니다.");

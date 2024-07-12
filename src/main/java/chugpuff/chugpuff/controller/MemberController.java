@@ -97,7 +97,6 @@ public class MemberController {
         memberDTO.setJobKeyword(member.getJobKeyword());
         memberDTO.setEmail(member.getEmail());
         memberDTO.setIsAbove15(member.getIsAbove15());
-        memberDTO.setTermsAccepted(member.getTermsAccepted());
         memberDTO.setPrivacyPolicyAccepted(member.getPrivacyPolicyAccepted());
         memberDTO.setRecordingAccepted(member.getRecordingAccepted());
         return memberDTO;
@@ -114,7 +113,6 @@ public class MemberController {
         member.setJobKeyword(memberDTO.getJobKeyword());
         member.setEmail(memberDTO.getEmail());
         member.setIsAbove15(memberDTO.getIsAbove15());
-        member.setTermsAccepted(memberDTO.getTermsAccepted());
         member.setPrivacyPolicyAccepted(memberDTO.getPrivacyPolicyAccepted());
         member.setRecordingAccepted(memberDTO.getRecordingAccepted());
         return member;

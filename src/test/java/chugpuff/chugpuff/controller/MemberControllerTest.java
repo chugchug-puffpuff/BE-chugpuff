@@ -79,8 +79,8 @@ public class MemberControllerTest {
     @DisplayName("모든 회원 조회 성공")
     public void testGetAllMembers() {
         List<Member> members = Arrays.asList(
-                new Member(1L, "test1", "1234", "name1", "IT개발·데이터", "백엔드/서버개발", "test1@test.com", true, true, true, true),
-                new Member(2L, "test2", "5678", "name2", "IT개발·데이터", "웹개발", "test2@test.com", true, true, true, true)
+                new Member(1L, "test1", "1234", "name1", "IT개발·데이터", "백엔드/서버개발", "test1@test.com", true, true, true),
+                new Member(2L, "test2", "5678", "name2", "IT개발·데이터", "웹개발", "test2@test.com", true, true, true)
         );
 
         when(memberService.getAllMembers()).thenReturn(members);
@@ -123,7 +123,6 @@ public class MemberControllerTest {
         memberDTO.setJobKeyword("백엔드/서버개발");
         memberDTO.setEmail("test1@test.com");
         memberDTO.setIsAbove15(true);
-        memberDTO.setTermsAccepted(true);
         memberDTO.setPrivacyPolicyAccepted(true);
         memberDTO.setRecordingAccepted(true);
 
@@ -136,7 +135,6 @@ public class MemberControllerTest {
         updatedMember.setJobKeyword("웹개발");
         updatedMember.setEmail("test1@test.com");
         updatedMember.setIsAbove15(true);
-        updatedMember.setTermsAccepted(true);
         updatedMember.setPrivacyPolicyAccepted(true);
         updatedMember.setRecordingAccepted(true);
 
