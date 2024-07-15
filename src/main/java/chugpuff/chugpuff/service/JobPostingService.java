@@ -1,128 +1,40 @@
 package chugpuff.chugpuff.service;
 
-import chugpuff.chugpuff.entity.JobPosting;
-import chugpuff.chugpuff.repository.JobPostingRepository;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import chugpuff.chugpuff.entity.LocationCode;
+import chugpuff.chugpuff.repository.LocationCodeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.Collections;
-import java.util.List;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
 public class JobPostingService {
 
-    private final String API_URL = "https://oapi.saramin.co.kr/job-search";
-    private final String API_KEY = "fXUtujznPIRqfBsGXXSxoeD2eOgUZx99aR7OMBW1b43WIasHMZFI";
+    private final RestTemplate restTemplate = new RestTemplate();
+    private static final String API_URL = "https://oapi.saramin.co.kr/job-search";
+
+    @Value("${saramin.access-key}")
+    private String accessKey;
 
     @Autowired
-    private JobPostingRepository jobPostingRepository;
+    private LocationCodeRepository locationCodeRepository;
 
-    public List<JobPosting> getAllJobPostings() {
-        return jobPostingRepository.findAll();
-    }
+    public String getJobPostings(String regionName) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
+                .queryParam("access-key", accessKey);
 
-    public void saveJobPosting(JobPosting jobPosting) {
-        jobPostingRepository.save(jobPosting);
-    }
+        LocationCode locationCode = locationCodeRepository.findByRegionName(regionName);
 
-    public void fetchAndSaveAllJobPostings() {
-        int page = 1;
-        int countPerPage = 100; // 한 페이지당 가져올 공고 수
-        int totalJobs = getTotalJobsCount(); // 전체 공고 수
-
-        while (countPerPage * (page - 1) < totalJobs) {
-            String url = API_URL + "?access-key=" + API_KEY + "&count=" + countPerPage + "&page=" + page;
-
-            RestTemplate restTemplate = new RestTemplate();
-            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-
-            if (response.getStatusCode() == HttpStatus.OK) {
-                JSONObject jsonObject = new JSONObject(response.getBody());
-                JSONObject jobsObject = jsonObject.getJSONObject("jobs");
-                JSONArray jobsArray = jobsObject.getJSONArray("job");
-
-
-                for (int i = 0; i < jobsArray.length(); i++) {
-                    JSONObject job = jobsArray.getJSONObject(i);
-                    String jobNo = job.getString("id");
-
-                    // 이미 존재하는지 확인 후 저장
-                    if (!jobPostingRepository.existsByJobNo(jobNo)) {
-                        JobPosting jobPosting = new JobPosting();
-                        jobPosting.setJobNo(jobNo);
-                        jobPosting.setScraps(0); // 새로운 공고의 스크랩 초기값은 0으로 설정
-                        saveJobPosting(jobPosting);
-                    }
-                }
-            }
-
-            page++;
-        }
-    }
-
-    private int getTotalJobsCount() {
-        String url = API_URL + "?access-key=" + API_KEY + "&count=1"; // 한 페이지당 1개씩 가져와서 전체 수 확인
-
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-
-        if (response.getStatusCode() == HttpStatus.OK) {
-            try {
-                JSONObject jsonObject = new JSONObject(response.getBody());
-                JSONObject jobsObject = jsonObject.getJSONObject("jobs");
-                JSONArray jobsArray = jobsObject.getJSONArray("job");
-
-                if (jobsObject.has("total")) {
-                    return jobsObject.getInt("total"); // 전체 공고 수 반환
-                } else {
-                    throw new JSONException("Field 'total' not found in 'jobs' object");
-                }
-            } catch (JSONException e) {
-                // JSON 파싱 오류 처리
-                e.printStackTrace(); // 실제로는 로깅 등으로 처리하는 것이 좋음
-                return 0; // 예외 상황에서는 0을 반환하거나 다른 적절한 처리를 수행
-            }
-        } else {
-            // HTTP 오류 처리
-            System.err.println("HTTP error: " + response.getStatusCode());
-            return 0; // 예외 상황에서는 0을 반환하거나 다른 적절한 처리를 수행
-        }
-    }
-
-    public JSONArray getJobDetailsFromAPI() {
-        List<JobPosting> jobPostings = getAllJobPostings();
-        JSONArray jobDetailsArray = new JSONArray();
-
-        RestTemplate restTemplate = new RestTemplate();
-
-        for (JobPosting jobPosting : jobPostings) {
-            String jobNo = jobPosting.getJobNo();
-            String url = API_URL + "?access-key=" + API_KEY + "&id=" + jobNo;
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Accept", "application/json");
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-
-            try {
-                ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-
-                if (response.getStatusCode() == HttpStatus.OK) {
-                    JSONObject jobDetail = new JSONObject(response.getBody());
-                    jobDetailsArray.put(jobDetail);
-                }
-            } catch (HttpClientErrorException e) {
-                System.err.println("HTTP error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString());
-            }
+        if (locationCode != null) {
+            builder.queryParam("loc_cd", locationCode.getLocCd());
         }
 
-        return jobDetailsArray;
+        builder.queryParam("count", 1000);
+
+        String url = builder.toUriString();
+
+        return restTemplate.getForObject(url, String.class);
     }
 }
 
