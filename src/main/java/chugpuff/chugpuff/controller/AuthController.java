@@ -1,6 +1,7 @@
 package chugpuff.chugpuff.controller;
 
 import chugpuff.chugpuff.domain.Member;
+import chugpuff.chugpuff.dto.LoginDTO;
 import chugpuff.chugpuff.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,9 @@ public class AuthController {
     // 로그인
     @PostMapping("/login")
     @ResponseBody
-    public ResponseEntity<String> login(@RequestBody String id, @RequestParam String password) {
+    public ResponseEntity<String> login(@RequestBody LoginDTO loginDTO) {
+        String id = loginDTO.getId();
+        String password = loginDTO.getPassword();
         try {
             Member member = memberService.authenticate(id, password);
             if (member != null) {
