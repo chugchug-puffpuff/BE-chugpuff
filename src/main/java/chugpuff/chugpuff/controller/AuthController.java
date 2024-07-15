@@ -8,16 +8,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
-@Controller
+@RestController
 public class AuthController {
 
-    @Autowired
-    private MemberService memberService;
+    private final MemberService memberService;
+
+    public AuthController(MemberService memberService) {
+        this.memberService = memberService;
+    }
 
     // 로그인
     @PostMapping("/login")
