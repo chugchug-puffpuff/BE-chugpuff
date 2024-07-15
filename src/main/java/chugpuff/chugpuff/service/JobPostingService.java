@@ -1,12 +1,16 @@
 package chugpuff.chugpuff.service;
 
+import chugpuff.chugpuff.entity.JobCode;
 import chugpuff.chugpuff.entity.LocationCode;
+import chugpuff.chugpuff.repository.JobCodeRepository;
 import chugpuff.chugpuff.repository.LocationCodeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import java.util.List;
 
 @Service
 public class JobPostingService {
@@ -20,7 +24,10 @@ public class JobPostingService {
     @Autowired
     private LocationCodeRepository locationCodeRepository;
 
-    public String getJobPostings(String regionName) {
+    @Autowired
+    private JobCodeRepository jobCodeRepository;
+
+    public String getJobPostings(String regionName, String jobMidName, String jobName) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
                 .queryParam("access-key", accessKey);
 
@@ -30,11 +37,21 @@ public class JobPostingService {
             builder.queryParam("loc_cd", locationCode.getLocCd());
         }
 
+        List<JobCode> jobCodes = jobCodeRepository.findByJobMidName(jobMidName);
+
+        for (JobCode jobCode : jobCodes) {
+            builder.queryParam("job_mid_cd", jobCode.getJobMidCd())
+                    .queryParam("job_cd", jobCode.getJobCd());
+        }
+
+
+
         builder.queryParam("count", 1000);
 
         String url = builder.toUriString();
 
         return restTemplate.getForObject(url, String.class);
     }
+
 }
 

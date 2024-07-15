@@ -13,8 +13,12 @@ public class JobPostingController {
     private JobPostingService jobPostingService;
 
     @GetMapping("")
-    public ResponseEntity<String> getJobPostings(@RequestParam(required = false) String regionName) {
-        String result = jobPostingService.getJobPostings(regionName);
+    public ResponseEntity<String> getJobPostings(
+            @RequestParam(required = false) String regionName,
+            @RequestParam(required = false) String jobMidName,
+            @RequestParam(required = false) String jobName) {
+
+        String result = jobPostingService.getJobPostings(regionName, jobMidName, jobName);
         return ResponseEntity.ok().body(result);
     }
 }
