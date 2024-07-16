@@ -2,6 +2,7 @@ package chugpuff.chugpuff.controller;
 
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.dto.MemberDTO;
+import chugpuff.chugpuff.dto.PasswordUpdateDTO;
 import chugpuff.chugpuff.service.MemberService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -76,10 +77,14 @@ public class MemberController {
 
     // 비밀번호 업데이트
     @PutMapping("/{user_id}/password")
-    public ResponseEntity<Object> updatePassword(@PathVariable Long user_id, @RequestParam String oldPassword, @RequestBody MemberDTO memberDTO) {
+    public ResponseEntity<Object> updatePassword(@PathVariable Long user_id, @RequestParam String oldPassword, @RequestBody PasswordUpdateDTO passwordUpdateDTO) {
         try {
-            Member updatedMember = convertToEntity(memberDTO);
-            Member updated = memberService.updatePassword(user_id, oldPassword, updatedMember.getPassword());
+            // 새로운 비밀번호와 확인 비밀번호 일치 여부 확인
+            if (!passwordUpdateDTO.getNewPassword().equals(passwordUpdateDTO.getConfirmPassword())) {
+                throw new IllegalArgumentException("새로운 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
+            }
+
+            Member updated = memberService.updatePassword(user_id, oldPassword, passwordUpdateDTO.getNewPassword());
             MemberDTO updatedDTO = convertToDto(updated);
             return new ResponseEntity<>(updatedDTO, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
