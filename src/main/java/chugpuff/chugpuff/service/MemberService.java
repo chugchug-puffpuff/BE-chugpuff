@@ -60,10 +60,9 @@ public class MemberService {
             Member member = optionalMember.get();
             // 비밀번호 검증
             if (passwordEncoder.matches(password, member.getPassword())) {
-                member.setPassword(passwordEncoder.encode(updatedMember.getPassword()));
-                member.setEmail(updatedMember.getEmail());
                 member.setJob(updatedMember.getJob());
                 member.setJobKeyword(updatedMember.getJobKeyword());
+                // 필요한 다른 필드 업데이트
                 return memberRepository.save(member);
             } else {
                 throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
