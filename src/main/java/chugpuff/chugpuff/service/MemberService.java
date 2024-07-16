@@ -54,15 +54,26 @@ public class MemberService {
     }
 
     // 회원 정보 업데이트
-    public Member updateMember(Long user_id, String password, Member updatedMember) {
+    public Member updateMember(Long user_id, Member updatedMember) {
+        Optional<Member> optionalMember = memberRepository.findById(user_id);
+        if (optionalMember.isPresent()) {
+            Member member = optionalMember.get();
+            member.setJob(updatedMember.getJob());
+            member.setJobKeyword(updatedMember.getJobKeyword());
+            return memberRepository.save(member);
+        } else {
+            throw new IllegalArgumentException("해당 id에 해당하는 회원이 존재하지 않습니다: " + user_id);
+        }
+    }
+
+    // 비밀번호 업데이트
+    public Member updatePassword(Long user_id, String oldPassword, String newPassword) {
         Optional<Member> optionalMember = memberRepository.findById(user_id);
         if (optionalMember.isPresent()) {
             Member member = optionalMember.get();
             // 비밀번호 검증
-            if (passwordEncoder.matches(password, member.getPassword())) {
-                member.setJob(updatedMember.getJob());
-                member.setJobKeyword(updatedMember.getJobKeyword());
-                // 필요한 다른 필드 업데이트
+            if (passwordEncoder.matches(oldPassword, member.getPassword())) {
+                member.setPassword(passwordEncoder.encode(newPassword));
                 return memberRepository.save(member);
             } else {
                 throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");

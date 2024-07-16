@@ -63,15 +63,23 @@ public class MemberController {
 
     // 회원 정보 업데이트
     @PutMapping("/{user_id}")
-    public ResponseEntity<Object> updateMember(@PathVariable Long user_id, @RequestParam String password, @RequestBody MemberDTO memberDTO) {
+    public ResponseEntity<Object> updateMember(@PathVariable Long user_id, @RequestBody MemberDTO memberDTO) {
         try {
-            // 비밀번호 일치 여부 검증
-            if (!memberService.isPasswordCorrect(user_id, password)) {
-                throw new IllegalArgumentException("Incorrect password.");
-            }
-
             Member updatedMember = convertToEntity(memberDTO);
-            Member updated = memberService.updateMember(user_id, password, updatedMember);
+            Member updated = memberService.updateMember(user_id, updatedMember);
+            MemberDTO updatedDTO = convertToDto(updated);
+            return new ResponseEntity<>(updatedDTO, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    // 비밀번호 업데이트
+    @PutMapping("/{user_id}/password")
+    public ResponseEntity<Object> updatePassword(@PathVariable Long user_id, @RequestParam String oldPassword, @RequestBody MemberDTO memberDTO) {
+        try {
+            Member updatedMember = convertToEntity(memberDTO);
+            Member updated = memberService.updatePassword(user_id, oldPassword, updatedMember.getPassword());
             MemberDTO updatedDTO = convertToDto(updated);
             return new ResponseEntity<>(updatedDTO, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
