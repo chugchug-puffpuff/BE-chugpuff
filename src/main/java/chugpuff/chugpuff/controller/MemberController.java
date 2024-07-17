@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.mail.MessagingException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,17 +26,24 @@ public class MemberController {
 
     private MemberService memberService;
     private EmailService emailService;
-
     private ConcurrentHashMap<String, String> emailVerificationCodes = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Boolean> emailVerificationStatus = new ConcurrentHashMap<>();
 
-    public MemberController(MemberService memberService) {
+    public MemberController(MemberService memberService, EmailService emailService) {
         this.memberService = memberService;
-        this.emailService = new EmailService();
+        this.emailService = emailService;
     }
 
     // 새로운 회원 추가
     @PostMapping
     public ResponseEntity<?> addMember(@RequestBody MemberDTO memberDTO) {
+        String email = memberDTO.getEmail();
+        Boolean isVerified = emailVerificationStatus.getOrDefault(email, false);
+
+        if (!isVerified) {
+            return new ResponseEntity<>("Email not verified.", HttpStatus.BAD_REQUEST);
+        }
+
         try {
             Member member = convertToEntity(memberDTO);
             Member savedMember = memberService.saveMember(member);
@@ -53,6 +61,7 @@ public class MemberController {
     public ResponseEntity<?> requestEmailVerification(@RequestParam String email) {
         String verificationCode = generateVerificationCode();
         emailVerificationCodes.put(email, verificationCode);
+        emailVerificationStatus.put(email, false);
         try {
             emailService.sendEmail(email, "Email Verification Code", "Your verification code is: " + verificationCode);
             return new ResponseEntity<>("Verification code sent to email.", HttpStatus.OK);
@@ -63,10 +72,14 @@ public class MemberController {
 
     // 이메일 인증 코드 확인
     @PostMapping("/verify-email-code")
-    public ResponseEntity<?> verifyEmailCode(@RequestParam String email, @RequestParam String code) {
+    public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String code = request.get("code");
+
         String storedCode = emailVerificationCodes.get(email);
         if (storedCode != null && storedCode.equals(code)) {
             emailVerificationCodes.remove(email);
+            emailVerificationStatus.put(email, true);
             return new ResponseEntity<>("Email verified successfully.", HttpStatus.OK);
         } else {
             return new ResponseEntity<>("Invalid verification code.", HttpStatus.BAD_REQUEST);
