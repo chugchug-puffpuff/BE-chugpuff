@@ -3,13 +3,20 @@ package chugpuff.chugpuff.controller;
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.dto.MemberDTO;
 import chugpuff.chugpuff.dto.PasswordUpdateDTO;
+import chugpuff.chugpuff.service.EmailService;
 import chugpuff.chugpuff.service.MemberService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.mail.MessagingException;
+
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -17,9 +24,13 @@ import java.util.stream.Collectors;
 public class MemberController {
 
     private MemberService memberService;
+    private EmailService emailService;
+
+    private ConcurrentHashMap<String, String> emailVerificationCodes = new ConcurrentHashMap<>();
 
     public MemberController(MemberService memberService) {
         this.memberService = memberService;
+        this.emailService = new EmailService();
     }
 
     // 새로운 회원 추가
@@ -35,6 +46,38 @@ public class MemberController {
         } catch (Exception e) {
             return new ResponseEntity<>("Failed to add member: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    // 이메일 인증 코드 요청
+    @PostMapping("/request-email-verification")
+    public ResponseEntity<?> requestEmailVerification(@RequestParam String email) {
+        String verificationCode = generateVerificationCode();
+        emailVerificationCodes.put(email, verificationCode);
+        try {
+            emailService.sendEmail(email, "Email Verification Code", "Your verification code is: " + verificationCode);
+            return new ResponseEntity<>("Verification code sent to email.", HttpStatus.OK);
+        } catch (MessagingException e) {
+            return new ResponseEntity<>("Failed to send verification email: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // 이메일 인증 코드 확인
+    @PostMapping("/verify-email-code")
+    public ResponseEntity<?> verifyEmailCode(@RequestParam String email, @RequestParam String code) {
+        String storedCode = emailVerificationCodes.get(email);
+        if (storedCode != null && storedCode.equals(code)) {
+            emailVerificationCodes.remove(email);
+            return new ResponseEntity<>("Email verified successfully.", HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>("Invalid verification code.", HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    // 인증 코드 생성
+    private String generateVerificationCode() {
+        Random random = new Random();
+        int code = 100000 + random.nextInt(900000);
+        return String.valueOf(code);
     }
 
     // ID로 특정 회원 조회
