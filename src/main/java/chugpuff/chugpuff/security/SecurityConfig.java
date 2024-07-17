@@ -27,7 +27,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
-                        .requestMatchers("/login", "/members", "/members/checkUserId").permitAll()
+                        .requestMatchers("/login", "/members", "/members/checkUserId", "/members/request-email-verification", "/members/verify-email-code").permitAll()
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable()) // CSRF 보호 비활성화
