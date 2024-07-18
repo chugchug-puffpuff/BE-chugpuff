@@ -110,6 +110,22 @@ public class MemberControllerTest {
     }
 
     @Test
+    @DisplayName("이메일 인증 상태 조회 성공")
+    public void testGetEmailVerificationStatus() throws NoSuchFieldException, IllegalAccessException {
+        String email = "test1@example.com";
+        Map<String, Boolean> emailVerificationStatus = new ConcurrentHashMap<>();
+        emailVerificationStatus.put(email, true);
+        setPrivateField(memberController, "emailVerificationStatus", emailVerificationStatus);
+
+        ResponseEntity<Boolean> response = memberController.getEmailVerificationStatus(email);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody());
+
+        System.out.println("이메일 인증 상태 조회 성공");
+    }
+
+    @Test
     @DisplayName("회원 ID로 회원 조회 성공")
     public void testGetMemberByUserId() {
         Long userId = 1L;
@@ -210,5 +226,19 @@ public class MemberControllerTest {
         MemberDTO responseDTO = (MemberDTO) response.getBody();
         assertEquals(updatedMember.getJob(), responseDTO.getJob());
         assertEquals(updatedMember.getJobKeyword(), responseDTO.getJobKeyword());
+    }
+
+    @Test
+    @DisplayName("회원 ID 중복 체크 성공")
+    public void testCheckUserIdDuplicate() {
+        String id = "test1";
+        when(memberService.checkUserIdDuplicate(id)).thenReturn(true);
+
+        ResponseEntity<Boolean> response = memberController.checkUserIdDuplicate(id);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody());
+
+        System.out.println("회원 ID 중복 체크 성공");
     }
 }
