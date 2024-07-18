@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -84,6 +83,13 @@ public class MemberController {
         } else {
             return new ResponseEntity<>("Invalid verification code.", HttpStatus.BAD_REQUEST);
         }
+    }
+
+    // 이메일 인증 상태 조회
+    @GetMapping("/email-verification-status")
+    public ResponseEntity<Boolean> getEmailVerificationStatus(@RequestParam String email) {
+        Boolean isVerified = emailVerificationStatus.getOrDefault(email, false);
+        return new ResponseEntity<>(isVerified, HttpStatus.OK);
     }
 
     // 인증 코드 생성
