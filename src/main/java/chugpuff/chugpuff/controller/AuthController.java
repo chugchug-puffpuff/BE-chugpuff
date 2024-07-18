@@ -10,10 +10,13 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 @RestController
 public class AuthController {
 
     private final MemberService memberService;
+    private final ConcurrentHashMap<String, Boolean> tokenBlacklist = new ConcurrentHashMap<>();
 
     public AuthController(MemberService memberService) {
         this.memberService = memberService;
@@ -45,6 +48,18 @@ public class AuthController {
         } catch (Exception e) {
             // 그 외의 예외
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Login failed: " + e.getMessage());
+        }
+    }
+
+    // 로그아웃
+    @PostMapping("/logout")
+    @ResponseBody
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
+        if (token != null && token.startsWith("Bearer ")) {
+            String jwt = token.substring(7).trim();
+            return ResponseEntity.ok("Logout successful");
+        } else {
+            return ResponseEntity.badRequest().body("Invalid token");
         }
     }
 }

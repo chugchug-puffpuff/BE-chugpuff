@@ -41,7 +41,8 @@ dependencies {
 	runtimeOnly group: 'io.jsonwebtoken', name: 'jjwt-jackson', version: '0.11.2'
 	implementation 'commons-codec:commons-codec:1.15'
 
-	implementation 'jakarta.servlet:jakarta.servlet-api:5.0.0'
+	implementation 'jakarta.servlet:jakarta.servlet-api:4.0.4'
+	implementation 'org.apache.tomcat.embed:tomcat-embed-core:10.1.25'
 
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 }
