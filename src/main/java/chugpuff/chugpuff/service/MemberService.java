@@ -91,9 +91,9 @@ public class MemberService {
 
     // 모든 필수 항목 동의 체크
     private void validateAllTermsAccepted(Member member) {
-        if (!Boolean.TRUE.equals(member.getIsAbove15()) ||
-                !Boolean.TRUE.equals(member.getPrivacyPolicyAccepted()) ||
-                !Boolean.TRUE.equals(member.getRecordingAccepted())) {
+        if (member.getIsAbove15() == null || !member.getIsAbove15() ||
+                member.getPrivacyPolicyAccepted() == null || !member.getPrivacyPolicyAccepted() ||
+                member.getRecordingAccepted() == null || !member.getRecordingAccepted()) {
             throw new IllegalArgumentException("모든 필수 항목에 동의해야 회원가입이 가능합니다.");
         }
     }
