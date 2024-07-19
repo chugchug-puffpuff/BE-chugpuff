@@ -52,8 +52,6 @@ public class JobPostingService {
                     .queryParam("job_cd", jobCode.getJobCd());
         }
 
-        builder.queryParam("count", 1000);
-
         String url = builder.toUriString();
 
         return restTemplate.getForObject(url, String.class);
