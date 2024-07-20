@@ -2,6 +2,7 @@ package chugpuff.chugpuff.service;
 
 import chugpuff.chugpuff.entity.Category;
 import chugpuff.chugpuff.repository.CategoryRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,20 +12,29 @@ import java.util.Optional;
 
 @Service
 public class CategoryService {
-    @Autowired
-    private CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository;
 
-    //카테고리 목록
+    @Autowired
+    public CategoryService(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
+    }
+
+    // 카테고리 목록
     private final List<Category> categories = Arrays.asList(
-            new Category() {{
-                setCategoryId(1);
-                setCategoryName("정보공유");
-            }},
-            new Category() {{
-                setCategoryId(2);
-                setCategoryName("취업고민");
-            }}
+            new Category("정보공유"),
+            new Category("취업고민")
     );
+
+    /**
+     * 애플리케이션 시작 시 초기 데이터를 설정하는 메서드
+     */
+    @PostConstruct
+    public void init() {
+        // 데이터베이스에 카테고리가 비어있을 경우에만 초기 카테고리를 저장
+        if (categoryRepository.count() == 0) {
+            categoryRepository.saveAll(categories);
+        }
+    }
 
     /**
      * 모든 카테고리 조회 메서드

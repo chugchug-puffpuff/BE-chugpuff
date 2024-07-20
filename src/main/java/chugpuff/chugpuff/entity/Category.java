@@ -1,5 +1,7 @@
 package chugpuff.chugpuff.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,7 +17,14 @@ public class Category {
     @Column(name = "category_name")
     private String categoryName; //카테고리 이름
 
-    public void setId(int id) {
-        this.categoryId = id;
+    // 기본 생성자 추가
+    public Category() {
     }
+
+    // 필요한 생성자 추가
+    public Category(String categoryName) {
+        this.categoryName = categoryName;
+    }
+
+
 }
