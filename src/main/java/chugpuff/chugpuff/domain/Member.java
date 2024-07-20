@@ -45,9 +45,6 @@ public class Member {
     private Boolean isAbove15;
 
     @Column(nullable = false)
-    private Boolean termsAccepted;
-
-    @Column(nullable = false)
     private Boolean privacyPolicyAccepted;
 
     @Column(nullable = false)
