@@ -3,7 +3,7 @@ package chugpuff.chugpuff.controller;
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.dto.MemberDTO;
 import chugpuff.chugpuff.dto.PasswordUpdateDTO;
-import chugpuff.chugpuff.service.EmailService;
+// import chugpuff.chugpuff.service.EmailService;
 import chugpuff.chugpuff.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,25 +24,37 @@ import java.util.stream.Collectors;
 public class MemberController {
 
     private MemberService memberService;
-    private EmailService emailService;
-    private ConcurrentHashMap<String, String> emailVerificationCodes = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, Boolean> emailVerificationStatus = new ConcurrentHashMap<>();
-
-    public MemberController(MemberService memberService, EmailService emailService) {
+//    private EmailService emailService;
+//    private ConcurrentHashMap<String, String> emailVerificationCodes = new ConcurrentHashMap<>();
+//    private ConcurrentHashMap<String, Boolean> emailVerificationStatus = new ConcurrentHashMap<>();
+//
+    public MemberController(MemberService memberService) {
         this.memberService = memberService;
-        this.emailService = emailService;
+//        this.emailService = emailService;
     }
 
     // 새로운 회원 추가
     @PostMapping
+//    public ResponseEntity<?> addMember(@RequestBody MemberDTO memberDTO) {
+//        String email = memberDTO.getEmail();
+//        Boolean isVerified = emailVerificationStatus.getOrDefault(email, false);
+//
+//        if (!isVerified) {
+//            return new ResponseEntity<>("Email not verified.", HttpStatus.BAD_REQUEST);
+//        }
+//
+//        try {
+//            Member member = convertToEntity(memberDTO);
+//            Member savedMember = memberService.saveMember(member);
+//            MemberDTO savedMemberDTO = convertToDto(savedMember);
+//            return new ResponseEntity<>(savedMemberDTO, HttpStatus.CREATED);
+//        } catch (IllegalArgumentException e) {
+//            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+//        } catch (Exception e) {
+//            return new ResponseEntity<>("Failed to add member: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
     public ResponseEntity<?> addMember(@RequestBody MemberDTO memberDTO) {
-        String email = memberDTO.getEmail();
-        Boolean isVerified = emailVerificationStatus.getOrDefault(email, false);
-
-        if (!isVerified) {
-            return new ResponseEntity<>("Email not verified.", HttpStatus.BAD_REQUEST);
-        }
-
         try {
             Member member = convertToEntity(memberDTO);
             Member savedMember = memberService.saveMember(member);
@@ -55,49 +67,49 @@ public class MemberController {
         }
     }
 
-    // 이메일 인증 코드 요청
-    @PostMapping("/request-email-verification")
-    public ResponseEntity<?> requestEmailVerification(@RequestParam String email) {
-        String verificationCode = generateVerificationCode();
-        emailVerificationCodes.put(email, verificationCode);
-        emailVerificationStatus.put(email, false);
-        try {
-            emailService.sendEmail(email, "Email Verification Code", "Your verification code is: " + verificationCode);
-            return new ResponseEntity<>("Verification code sent to email.", HttpStatus.OK);
-        } catch (MessagingException e) {
-            return new ResponseEntity<>("Failed to send verification email: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    // 이메일 인증 코드 확인
-    @PostMapping("/verify-email-code")
-    public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> request) {
-        String email = request.get("email");
-        String code = request.get("code");
-
-        String storedCode = emailVerificationCodes.get(email);
-        if (storedCode != null && storedCode.equals(code)) {
-            emailVerificationCodes.remove(email);
-            emailVerificationStatus.put(email, true);
-            return new ResponseEntity<>("Email verified successfully.", HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Invalid verification code.", HttpStatus.BAD_REQUEST);
-        }
-    }
-
-    // 이메일 인증 상태 조회
-    @GetMapping("/email-verification-status")
-    public ResponseEntity<Boolean> getEmailVerificationStatus(@RequestParam String email) {
-        Boolean isVerified = emailVerificationStatus.getOrDefault(email, false);
-        return new ResponseEntity<>(isVerified, HttpStatus.OK);
-    }
-
-    // 인증 코드 생성
-    private String generateVerificationCode() {
-        Random random = new Random();
-        int code = 100000 + random.nextInt(900000);
-        return String.valueOf(code);
-    }
+//    // 이메일 인증 코드 요청
+//    @PostMapping("/request-email-verification")
+//    public ResponseEntity<?> requestEmailVerification(@RequestParam String email) {
+//        String verificationCode = generateVerificationCode();
+//        emailVerificationCodes.put(email, verificationCode);
+//        emailVerificationStatus.put(email, false);
+//        try {
+//            emailService.sendEmail(email, "Email Verification Code", "Your verification code is: " + verificationCode);
+//            return new ResponseEntity<>("Verification code sent to email.", HttpStatus.OK);
+//        } catch (MessagingException e) {
+//            return new ResponseEntity<>("Failed to send verification email: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+//        }
+//    }
+//
+//    // 이메일 인증 코드 확인
+//    @PostMapping("/verify-email-code")
+//    public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> request) {
+//        String email = request.get("email");
+//        String code = request.get("code");
+//
+//        String storedCode = emailVerificationCodes.get(email);
+//        if (storedCode != null && storedCode.equals(code)) {
+//            emailVerificationCodes.remove(email);
+//            emailVerificationStatus.put(email, true);
+//            return new ResponseEntity<>("Email verified successfully.", HttpStatus.OK);
+//        } else {
+//            return new ResponseEntity<>("Invalid verification code.", HttpStatus.BAD_REQUEST);
+//        }
+//    }
+//
+//    // 이메일 인증 상태 조회
+//    @GetMapping("/email-verification-status")
+//    public ResponseEntity<Boolean> getEmailVerificationStatus(@RequestParam String email) {
+//        Boolean isVerified = emailVerificationStatus.getOrDefault(email, false);
+//        return new ResponseEntity<>(isVerified, HttpStatus.OK);
+//    }
+//
+//    // 인증 코드 생성
+//    private String generateVerificationCode() {
+//        Random random = new Random();
+//        int code = 100000 + random.nextInt(900000);
+//        return String.valueOf(code);
+//    }
 
     // ID로 특정 회원 조회
     @GetMapping("/{user_id}")
