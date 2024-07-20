@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class CategoryService {
@@ -26,17 +27,16 @@ public class CategoryService {
     );
 
     /**
-     * 모든 카테고리를 조회
+     * 모든 카테고리 조회 메서드
      *
-     * @return 미리 정의된 카테고리 목록
+     * @return 모든 카테고리 엔티티 리스트
      */
     public List<Category> getAllCategories() {
-        return categories;
+        return categoryRepository.findAll();
     }
 
-
     /**
-     * 카테고리 이름으로 카테고리를 조회
+     * 카테고리 이름으로 카테고리 조회
      *
      * @param categoryName 조회할 카테고리 이름
      * @return 해당 이름을 가진 카테고리 엔티티
@@ -45,17 +45,13 @@ public class CategoryService {
         return categoryRepository.findByCategoryName(categoryName);
     }
 
-
     /**
-     * 카테고리 ID로 카테고리를 조회
+     * 카테고리 ID로 카테고리 조회
      *
      * @param id 조회할 카테고리 ID
      * @return 해당 ID를 가진 카테고리 엔티티, 없으면 null
      */
-    public Category findCategoryById(int id) {
-        return categories.stream()
-                .filter(category -> category.getCategoryId() == id)
-                .findFirst()
-                .orElse(null);
+    public Optional<Category> findCategoryById(int id) {
+        return categoryRepository.findById(id);
     }
 }

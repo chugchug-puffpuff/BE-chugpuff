@@ -22,21 +22,18 @@ import java.util.Optional;
 public class LikeService {
 
     private final LikeRepository likeRepository;
-    private BoardService boardService; // Avoid direct circular reference if possible
-
-    public void setBoardService(BoardService boardService) {
-        this.boardService = boardService;
-    }
-    @Autowired
-    public LikeService(LikeRepository likeRepository) {
-        this.likeRepository = likeRepository;
-    }
-
-    @Autowired
     private BoardRepository boardRepository;
 
-    @Autowired
     private MemberRepository memberRepository;
+
+
+    @Autowired
+    public LikeService(LikeRepository likeRepository, BoardRepository boardRepository, MemberRepository memberRepository) {
+        this.likeRepository = likeRepository;
+        this.boardRepository = boardRepository;
+        this.memberRepository = memberRepository;
+    }
+
 
 
     /**
@@ -50,22 +47,26 @@ public class LikeService {
     }
 
     @Transactional
-    public void toggleLike(int boardNo, Member member) {
-        Board board = boardService.findById(boardNo)
-                .orElseThrow(() -> new EntityNotFoundException("Board not found with id: " + boardNo));
+    public void toggleLike(int boardNo, Long userId) {
+        Board board = boardRepository.findById(boardNo)
+                .orElseThrow(() -> new EntityNotFoundException("게시글을 찾을 수 없습니다."));
+        Member member = memberRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다."));
 
         Optional<Like> likeOptional = likeRepository.findByBoardAndMember(board, member);
         if (likeOptional.isPresent()) {
             likeRepository.delete(likeOptional.get());
-            board.setLikes(board.getLikes() - 1); // 좋아요 수 감소
+            board.setLikes(board.getLikes() - 1);
         } else {
-            Like like = new Like();
-            like.setBoard(board);
-            like.setMember(member);
+            Like like = new Like(board, member);
             likeRepository.save(like);
-            board.setLikes(board.getLikes() + 1); // 좋아요 수 증가
+            board.setLikes(board.getLikes() + 1);
         }
-        boardService.update(board); // Board 엔티티 업데이트
+        boardRepository.save(board);
+    }
+    @Transactional
+    public void deleteLikesByBoardNo(int boardNo) {
+        likeRepository.deleteByBoard_BoardNo(boardNo);
     }
 }
 
