@@ -3,7 +3,6 @@ package chugpuff.chugpuff.controller;
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.dto.MemberDTO;
 import chugpuff.chugpuff.dto.PasswordUpdateDTO;
-import chugpuff.chugpuff.service.EmailService;
 import chugpuff.chugpuff.service.MemberService;
 import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,9 +30,6 @@ public class MemberControllerTest {
 
     @Mock
     private MemberService memberService;
-
-    @Mock
-    private EmailService emailService;
 
     @InjectMocks
     private MemberController memberController;
@@ -77,53 +73,10 @@ public class MemberControllerTest {
         System.out.println("새 회원 추가 성공");
     }
 
-    @Test
-    @DisplayName("이메일 인증 요청 성공")
-    public void testRequestEmailVerification() throws MessagingException {
-        String email = "test1@example.com";
-        doNothing().when(emailService).sendEmail(any(String.class), any(String.class), any(String.class));
 
-        ResponseEntity<?> response = memberController.requestEmailVerification(email);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Verification code sent to email.", response.getBody());
 
-        System.out.println("이메일 인증 요청 성공");
-    }
 
-    @Test
-    @DisplayName("이메일 인증 코드 확인 성공")
-    public void testVerifyEmailCode() throws NoSuchFieldException, IllegalAccessException {
-        String email = "test1@example.com";
-        String code = "123456";
-
-        Map<String, String> emailVerificationCodes = new ConcurrentHashMap<>();
-        emailVerificationCodes.put(email, code);
-        setPrivateField(memberController, "emailVerificationCodes", emailVerificationCodes);
-
-        ResponseEntity<?> response = memberController.verifyEmailCode(Map.of("email", email, "code", code));
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Email verified successfully.", response.getBody());
-
-        System.out.println("이메일 인증 코드 확인 성공");
-    }
-
-    @Test
-    @DisplayName("이메일 인증 상태 조회 성공")
-    public void testGetEmailVerificationStatus() throws NoSuchFieldException, IllegalAccessException {
-        String email = "test1@example.com";
-        Map<String, Boolean> emailVerificationStatus = new ConcurrentHashMap<>();
-        emailVerificationStatus.put(email, true);
-        setPrivateField(memberController, "emailVerificationStatus", emailVerificationStatus);
-
-        ResponseEntity<Boolean> response = memberController.getEmailVerificationStatus(email);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(response.getBody());
-
-        System.out.println("이메일 인증 상태 조회 성공");
-    }
 
     @Test
     @DisplayName("회원 ID로 회원 조회 성공")

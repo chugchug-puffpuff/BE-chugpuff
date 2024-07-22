@@ -1,4 +1,4 @@
-package chugpuff.chugpuff.controller;
+/*package chugpuff.chugpuff.controller;
 
 import chugpuff.chugpuff.entity.Category;
 import chugpuff.chugpuff.service.CategoryService;
@@ -27,8 +27,8 @@ public class CategoryController {
     }
 
     // ID로 카테고리 조회
-    /*@GetMapping("/{id}")
+    *//*@GetMapping("/{id}")
     public Category getCategoryById(@PathVariable int id) {
         return categoryService.findCategoryById(id);
-    }*/
-}
+    }*//*
+}*/

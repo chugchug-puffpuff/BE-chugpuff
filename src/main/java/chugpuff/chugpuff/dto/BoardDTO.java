@@ -1,26 +1,40 @@
 package chugpuff.chugpuff.dto;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+
 public class BoardDTO {
     private int boardNo;
     private String boardTitle;
     private String boardContent;
     private String memberName;
-    private String categoryName;
+    private LocalDateTime boardDate;
+    private LocalDateTime boardModifiedDate;
+    private int likes;
+    private int commentCount;
+    private List<String> commentContents;
+    private CategoryDTO category;
 
-    // Constructors, Getters, and Setters
-
+    // 기본 생성자
     public BoardDTO() {}
 
-    public BoardDTO(int boardNo, String boardTitle, String boardContent, String memberName, String categoryName) {
+    // 모든 필드를 포함하는 생성자
+    public BoardDTO(int boardNo, String boardTitle, String boardContent, String memberName, LocalDateTime boardDate, LocalDateTime boardModifiedDate, int likes, int commentCount, List<String> commentContents, CategoryDTO category) {
         this.boardNo = boardNo;
         this.boardTitle = boardTitle;
         this.boardContent = boardContent;
         this.memberName = memberName;
-        this.categoryName = categoryName;
+        this.boardDate = boardDate;
+        this.boardModifiedDate = boardModifiedDate;
+        this.likes = likes;
+        this.commentCount = commentCount;
+        this.commentContents = commentContents;
+        this.category = category;
     }
 
-    // Getters and Setters
 
+    // 각 필드에 대한 getter와 setter
     public int getBoardNo() {
         return boardNo;
     }
@@ -45,6 +59,46 @@ public class BoardDTO {
         this.boardContent = boardContent;
     }
 
+    public LocalDateTime getBoardDate() {
+        return boardDate;
+    }
+
+    public void setBoardDate(LocalDateTime boardDate) {
+        this.boardDate = boardDate;
+    }
+
+    public LocalDateTime getBoardModifiedDate() {
+        return boardModifiedDate;
+    }
+
+    public void setBoardModifiedDate(LocalDateTime boardModifiedDate) {
+        this.boardModifiedDate = boardModifiedDate;
+    }
+
+    public int getLikes() {
+        return likes;
+    }
+
+    public void setLikes(int likes) {
+        this.likes = likes;
+    }
+
+    public int getCommentCount() {
+        return commentCount;
+    }
+
+    public void setCommentCount(int commentCount) {
+        this.commentCount = commentCount;
+    }
+
+    public List<String> getCommentContents() {
+        return commentContents;
+    }
+
+    public void setCommentContents(List<String> commentContents) {
+        this.commentContents = commentContents;
+    }
+
     public String getMemberName() {
         return memberName;
     }
@@ -53,11 +107,11 @@ public class BoardDTO {
         this.memberName = memberName;
     }
 
-    public String getCategoryName() {
-        return categoryName;
+    public CategoryDTO getCategory() {
+        return category;
     }
 
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
+    public void setCategory(CategoryDTO category) {
+        this.category = category;
     }
 }
