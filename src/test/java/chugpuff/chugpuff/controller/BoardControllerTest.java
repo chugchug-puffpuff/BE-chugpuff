@@ -87,7 +87,6 @@ public class BoardControllerTest {
         boardDTO.setBoardContent("Test Content");
         boardDTO.setMemberName("Test Member");
         boardDTO.setBoardDate(LocalDateTime.now());
-        boardDTO.setBoardModifiedDate(LocalDateTime.now());
         boardDTO.setLikes(0);
         boardDTO.setCommentCount(0);
         boardDTO.setCategory(new CategoryDTO(1, "정보공유"));
