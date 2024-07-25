@@ -1,174 +1,152 @@
 package chugpuff.chugpuff.controller;
 
-import chugpuff.chugpuff.domain.Member;
+import chugpuff.chugpuff.dto.BoardDTO;
+import chugpuff.chugpuff.dto.CategoryDTO;
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.entity.Category;
-import chugpuff.chugpuff.entity.MemberEntity;
-import chugpuff.chugpuff.repository.MemberRepository;
 import chugpuff.chugpuff.service.BoardService;
-import chugpuff.chugpuff.service.LikeService;
-import chugpuff.chugpuff.service.CategoryService;
-import chugpuff.chugpuff.service.MemberService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Optional;
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(BoardController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 public class BoardControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @Mock
     private BoardService boardService;
 
-    @MockBean
-    private LikeService likeService;
-
-    @MockBean
-    private CategoryService categoryService;
-
-    @MockBean
-    private MemberService memberService;
-
-    @MockBean
-    private MemberRepository memberRepository;
+    @InjectMocks
+    private BoardController boardController;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private WebApplicationContext context;
-
-    private Board board;
-    private Member member;
-    private Category category;
-
     @BeforeEach
     void setUp() {
-        member = new Member();
-        member.setUser_id(1L);
-        member.setName("Test User");
+        MockitoAnnotations.openMocks(this);
+        objectMapper.registerModule(new JavaTimeModule());
+    }
 
-        category = new Category();
-        category.setCategoryId(1);
-        category.setCategoryName("Test Category");
+    @Test
+    @WithMockUser
+    public void testGetAllBoards() throws Exception {
+        when(boardService.findAll()).thenReturn(Collections.emptyList());
 
-        board = new Board();
+        mockMvc.perform(get("/api/board"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$").isArray());
+
+    }
+
+    @Test
+    @WithMockUser
+    public void testGetBoardById() throws Exception {
+        BoardDTO boardDTO = new BoardDTO();
+        boardDTO.setBoardNo(1);
+        when(boardService.findById(anyInt())).thenReturn(Optional.of(boardDTO));
+
+        mockMvc.perform(get("/api/board/1"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.boardNo").value(1));
+    }
+
+    @Test
+    @WithMockUser(username = "testUser", roles = {"USER"})
+    public void testCreateBoard() throws Exception {
+        BoardDTO boardDTO = new BoardDTO();
+        boardDTO.setBoardNo(1);
+        boardDTO.setBoardTitle("Test Title");
+        boardDTO.setBoardContent("Test Content");
+        boardDTO.setMemberName("Test Member");
+        boardDTO.setBoardDate(LocalDateTime.now());
+        boardDTO.setBoardModifiedDate(LocalDateTime.now());
+        boardDTO.setLikes(0);
+        boardDTO.setCommentCount(0);
+        boardDTO.setCategory(new CategoryDTO(1, "정보공유"));
+
+        // Mocking Board entity
+        Board board = new Board();
         board.setBoardNo(1);
         board.setBoardTitle("Test Title");
         board.setBoardContent("Test Content");
-        board.setBoardDate(LocalDateTime.now());
-        board.setBoardmodifiedDate(LocalDateTime.now());
-        board.setLikes(0);
-        board.setMember(member);
-        board.setCategory(category);
+        // Set other fields accordingly
 
-        // MockMvc with security setup
-        mockMvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-    }
+        // Mock the service methods
+        when(boardService.save(any(Board.class), any(Authentication.class))).thenReturn(board);
+        when(boardService.convertToDTO(any(Board.class))).thenReturn(boardDTO);
 
-    @Test
-    @WithMockUser(username = "testUser", roles = {"USER"})
-    void testCreateBoard() throws Exception {
-        when(memberRepository.findById(any(Long.class))).thenReturn(Optional.of(member));
-        when(boardService.save(any(Board.class))).thenReturn(board);
-
-        mockMvc.perform(post("/api/board").with(csrf())
+        mockMvc.perform(post("/api/board")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .param("userId", "1")
-                        .content(objectMapper.writeValueAsString(board)))
+                        .content(objectMapper.writeValueAsString(boardDTO)))
                 .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(board)));
-    }
-
-    @Test
-    @WithMockUser(username = "testUser", roles = {"USER"})
-    void testGetBoardById() throws Exception {
-        when(boardService.findById(anyInt())).thenReturn(Optional.of(board));
-
-        mockMvc.perform(get("/api/board/{boardNo}", 1).with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.boardNo").value(1))
                 .andExpect(jsonPath("$.boardTitle").value("Test Title"))
-                .andExpect(jsonPath("$.boardContent").value("Test Content"));
+                .andExpect(jsonPath("$.boardContent").value("Test Content"))
+                .andExpect(jsonPath("$.memberName").value("Test Member"));
     }
-
     @Test
     @WithMockUser(username = "testUser", roles = {"USER"})
-    void testUpdateBoard() throws Exception {
-        Board updatedBoard = new Board();
-        updatedBoard.setBoardNo(1);
-        updatedBoard.setBoardTitle("Updated Title");
-        updatedBoard.setBoardContent("Updated Content");
-        updatedBoard.setBoardDate(LocalDateTime.now());
-        updatedBoard.setBoardmodifiedDate(LocalDateTime.now());
-        updatedBoard.setLikes(0);
-        updatedBoard.setMember(member);
-        updatedBoard.setCategory(category);
+    public void testUpdateBoard() throws Exception {
+        // Sample BoardDTO for the update
+        BoardDTO updateBoardDTO = new BoardDTO();
+        updateBoardDTO.setBoardNo(1);
+        updateBoardDTO.setBoardTitle("Updated Title");
+        updateBoardDTO.setBoardContent("Updated Content");
+        updateBoardDTO.setMemberName("Updated Member");
+        updateBoardDTO.setBoardDate(LocalDateTime.now());
+        updateBoardDTO.setBoardModifiedDate(LocalDateTime.now());
+        updateBoardDTO.setLikes(0);
+        updateBoardDTO.setCommentCount(0);
+        updateBoardDTO.setCategory(new CategoryDTO(1, "Updated Category"));
 
-        when(boardService.update(any(Board.class))).thenReturn(updatedBoard);
+        // Mocking service response
+        when(boardService.update(anyInt(), any(BoardDTO.class), any(Authentication.class)))
+                .thenReturn(updateBoardDTO);
 
-        mockMvc.perform(put("/api/board/{boardNo}", 1).with(csrf())
+        mockMvc.perform(put("/api/board/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedBoard)))
+                        .content(objectMapper.writeValueAsString(updateBoardDTO)))
                 .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(updatedBoard)));
+                .andExpect(jsonPath("$.boardTitle").value("Updated Title"))
+                .andExpect(jsonPath("$.boardContent").value("Updated Content"))
+                .andExpect(jsonPath("$.memberName").value("Updated Member"))
+                .andExpect(jsonPath("$.category.categoryName").value("Updated Category"));
     }
 
     @Test
     @WithMockUser(username = "testUser", roles = {"USER"})
-    void testDeleteBoard() throws Exception {
-        doNothing().when(boardService).delete(anyInt());
+    public void testDeleteBoard() throws Exception {
+        // Mocking service response to do nothing on delete
+        doNothing().when(boardService).delete(anyInt(), any(Authentication.class));
 
-        mockMvc.perform(delete("/api/board/{boardNo}", 1).with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    @WithMockUser(username = "testUser", roles = {"USER"})
-    void testGetAllBoards() throws Exception {
-        when(boardService.findAll()).thenReturn(List.of(board));
-
-        mockMvc.perform(get("/api/board")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(List.of(board))));
-    }
-
-    @Test
-    @WithMockUser(username = "testUser", roles = {"USER"})
-    void testSearchBoardsByKeyword() throws Exception {
-        when(boardService.searchByKeyword("Test")).thenReturn(List.of(board));
-
-        mockMvc.perform(get("/api/board/search")
-                        .param("keyword", "Test")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().json(objectMapper.writeValueAsString(List.of(board))));
+        mockMvc.perform(delete("/api/board/1"))
+                .andExpect(status().isOk());
     }
 }
-

@@ -17,7 +17,10 @@ public class BoardDTO {
     private CategoryDTO category;
 
     // 기본 생성자
-    public BoardDTO() {}
+    public BoardDTO() {
+        this.boardDate = LocalDateTime.now();
+        this.boardModifiedDate = LocalDateTime.now();
+    }
 
     // 모든 필드를 포함하는 생성자
     public BoardDTO(int boardNo, String boardTitle, String boardContent, String memberName, LocalDateTime boardDate, LocalDateTime boardModifiedDate, int likes, int commentCount, List<String> commentContents, CategoryDTO category) {
