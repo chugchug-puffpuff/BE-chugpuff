@@ -1,6 +1,5 @@
 package chugpuff.chugpuff.controller;
 
-import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.service.CustomUserDetails;
 import chugpuff.chugpuff.service.JobPostingService;
 import chugpuff.chugpuff.service.MemberService;
@@ -72,5 +71,12 @@ public class JobPostingController {
 
         List<String> scrappedJobPostings = jobPostingService.getScrappedJobPostings(memberId);
         return ResponseEntity.ok().body(scrappedJobPostings);
+    }
+
+    // 특정 공고의 스크랩 수 조회
+    @GetMapping("/{jobId}/scrap-count")
+    public ResponseEntity<Long> getJobScrapCount(@PathVariable String jobId) {
+        Long scrapCount = jobPostingService.getJobScrapCount(jobId);
+        return ResponseEntity.ok().body(scrapCount);
     }
 }

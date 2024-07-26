@@ -178,5 +178,10 @@ public class JobPostingService {
                 .map(scrap -> getJobDetails(scrap.getJobId())) //특정 공고 조회로 넘기기
                 .collect(Collectors.toList());
     }
+
+    // 특정 공고의 스크랩 수 조회
+    public Long getJobScrapCount(String jobId) {
+        return scrapRepository.countByJobId(jobId);
+    }
 }
 
