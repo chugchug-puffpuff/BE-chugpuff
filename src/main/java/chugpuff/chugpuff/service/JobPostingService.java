@@ -114,18 +114,11 @@ public class JobPostingService {
         }
 
         Member member = optionalMember.get();
-        String job = member.getJob();
         String jobKeyword = member.getJobKeyword();
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
                 .queryParam("access-key", accessKey);
 
-        if (job != null && !job.isEmpty()) {
-            List<JobCode> jobCodes = jobCodeRepository.findByJobMidName(job);
-            for (JobCode jobCode : jobCodes) {
-                builder.queryParam("job_mid_cd", jobCode.getJobMidCd());
-            }
-        }
 
         if (jobKeyword != null && !jobKeyword.isEmpty()) {
             JobCode jobCode = jobCodeRepository.findByJobName(jobKeyword);
