@@ -1,9 +1,11 @@
 package chugpuff.chugpuff.service;
 
+import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.entity.JobCode;
 import chugpuff.chugpuff.entity.LocationCode;
 import chugpuff.chugpuff.repository.JobCodeRepository;
 import chugpuff.chugpuff.repository.LocationCodeRepository;
+import chugpuff.chugpuff.repository.MemberRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 @Service
@@ -34,15 +37,20 @@ public class JobPostingService {
     @Autowired
     private JobCodeRepository jobCodeRepository;
 
+    @Autowired
+    private MemberRepository memberRepository;
+
     //공고 조회 및 필터링
     public String getJobPostings(String regionName, String jobMidName, String jobName) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
                 .queryParam("access-key", accessKey);
 
-        LocationCode locationCode = locationCodeRepository.findByRegionName(regionName);
+        List<LocationCode> locationCodes = locationCodeRepository.findByRegionName(regionName);
 
-        if (locationCode != null) {
-            builder.queryParam("loc_cd", locationCode.getLocCd());
+        if (locationCodes != null && !locationCodes.isEmpty()) {
+            for (LocationCode locationCode : locationCodes) {
+                builder.queryParam("loc_cd", locationCode.getLocCd());
+            }
         }
 
         List<JobCode> jobCodes = jobCodeRepository.findByJobMidName(jobMidName);
@@ -81,5 +89,53 @@ public class JobPostingService {
         return response.getBody();
     }
 
+    //특정 공고 조회
+    public String getJobDetails(String jobId) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
+                .queryParam("access-key", accessKey)
+                .queryParam("id", jobId);
+
+        URI uri = builder.build(true).toUri();
+
+        logger.info("Request URL for job details: " + uri.toString());
+
+        ResponseEntity<String> response = restTemplate.getForEntity(uri, String.class);
+        logger.info("Response Status Code: " + response.getStatusCode());
+
+        return response.getBody();
+    }
+
+    // 회원 맞춤 공고 조회
+    public String getRecommendedJobPostingsForMember(String memberId) {
+        Optional<Member> optionalMember = memberRepository.findById(memberId);
+
+        if (optionalMember.isEmpty()) {
+            throw new IllegalArgumentException("Member not found with id: " + memberId);
+        }
+
+        Member member = optionalMember.get();
+        String job = member.getJob();
+        String jobKeyword = member.getJobKeyword();
+
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
+                .queryParam("access-key", accessKey);
+
+        if (job != null && !job.isEmpty()) {
+            List<JobCode> jobCodes = jobCodeRepository.findByJobMidName(job);
+            for (JobCode jobCode : jobCodes) {
+                builder.queryParam("job_mid_cd", jobCode.getJobMidCd());
+            }
+        }
+
+        if (jobKeyword != null && !jobKeyword.isEmpty()) {
+            JobCode jobCode = jobCodeRepository.findByJobName(jobKeyword);
+            if (jobCode != null) {
+                builder.queryParam("job_cd", jobCode.getJobCd());
+            }
+        }
+
+        String url = builder.toUriString();
+        return restTemplate.getForObject(url, String.class);
+    }
 }
 
