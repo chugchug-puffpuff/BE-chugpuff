@@ -15,4 +15,6 @@ public interface ScrapRepository extends JpaRepository<Scrap, Long> {
     List<Scrap> findByMember(Member member);
     @Query("SELECT COUNT(s) FROM Scrap s WHERE s.jobId = :jobId")
     Long countByJobId(String jobId);
+    @Query("SELECT s.jobId, COUNT(s) AS scrapCount FROM Scrap s GROUP BY s.jobId ORDER BY scrapCount DESC")
+    List<Object[]> findJobIdsOrderByScrapCount();
 }

@@ -25,16 +25,25 @@ public class JobPostingController {
     public ResponseEntity<String> getJobPostings(
             @RequestParam(required = false) String regionName,
             @RequestParam(required = false) String jobMidName,
-            @RequestParam(required = false) String jobName) {
+            @RequestParam(required = false) String jobName,
+            @RequestParam(required = false) String sortBy) {
 
-        String result = jobPostingService.getJobPostings(regionName, jobMidName, jobName);
+        String result;
+        if ("scrap-count".equals(sortBy)) {
+            result = String.join(", ", jobPostingService.getJobPostingsSortedByScrapCount());
+        } else {
+            result = jobPostingService.getJobPostings(regionName, jobMidName, jobName, sortBy);
+        }
+
         return ResponseEntity.ok().body(result);
     }
 
     //키워드 검색
     @GetMapping("/search")
-    public ResponseEntity<String> getJobPostingsByKeywords(@RequestParam String keywords) {
-        String result = jobPostingService.getJobPostingsByKeywords(keywords);
+    public ResponseEntity<String> getJobPostingsByKeywords(
+            @RequestParam String keywords,
+            @RequestParam(required = false) String sortBy) {
+        String result = jobPostingService.getJobPostingsByKeywords(keywords, sortBy);
         return ResponseEntity.ok().body(result);
     }
 

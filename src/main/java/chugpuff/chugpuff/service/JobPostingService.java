@@ -53,7 +53,7 @@ public class JobPostingService {
     private JobPostingCommentRepository jobPostingCommentRepository;
 
     //공고 조회 및 필터링
-    public String getJobPostings(String regionName, String jobMidName, String jobName) {
+    public String getJobPostings(String regionName, String jobMidName, String jobName, String sortBy) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
                 .queryParam("access-key", accessKey);
 
@@ -72,13 +72,17 @@ public class JobPostingService {
                     .queryParam("job_cd", jobCode.getJobCd());
         }
 
+        if (sortBy != null && !sortBy.isEmpty()) {
+            builder.queryParam("sort", sortBy);
+        }
+
         String url = builder.toUriString();
 
         return restTemplate.getForObject(url, String.class);
     }
 
     //키워드 검색
-    public String getJobPostingsByKeywords(String keywords) {
+    public String getJobPostingsByKeywords(String keywords, String sortBy) {
         String encodedKeywords;
         try {
             encodedKeywords = URLEncoder.encode(keywords, StandardCharsets.UTF_8.toString());
@@ -91,6 +95,10 @@ public class JobPostingService {
                 .queryParam("access-key", accessKey)
                 .queryParam("keywords", encodedKeywords)
                 .queryParam("count", 1000);
+
+        if (sortBy != null && !sortBy.isEmpty()) {
+            builder.queryParam("sort", sortBy);
+        }
 
         URI uri = builder.build(true).toUri();
         logger.info("Request URL: " + uri.toString());
@@ -243,6 +251,17 @@ public class JobPostingService {
         }
 
         jobPostingCommentRepository.delete(jobPostingComment);
+    }
+
+    //스크랩순 정렬
+    public List<String> getJobPostingsSortedByScrapCount() {
+        List<Object[]> jobIdsWithScrapCount = scrapRepository.findJobIdsOrderByScrapCount();
+
+        List<String> sortedJobDetails = jobIdsWithScrapCount.stream()
+                .map(jobIdWithCount -> getJobDetails((String) jobIdWithCount[0]))
+                .collect(Collectors.toList());
+
+        return sortedJobDetails;
     }
 }
 
