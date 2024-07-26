@@ -83,11 +83,45 @@ public class JobPostingController {
 
     // 댓글 작성
     @PostMapping("/{jobId}/comments")
-    public ResponseEntity<JobPostingComment> addComment(@PathVariable String jobId, @RequestParam String comment, Authentication authentication) {
+    public ResponseEntity<JobPostingComment> addComment(@PathVariable String jobId, @RequestBody CommentRequest commentRequest, Authentication authentication) {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         String userId = userDetails.getUsername();
-        JobPostingComment jobPostingComment = jobPostingService.addComment(jobId, userId, comment);
+        JobPostingComment jobPostingComment = jobPostingService.addComment(jobId, userId, commentRequest.getComment());
         return ResponseEntity.ok().body(jobPostingComment);
     }
+
+    // 댓글 수정
+    @PutMapping("/comments/{commentId}")
+    public ResponseEntity<JobPostingComment> updateComment(@PathVariable Long commentId, @RequestBody CommentRequest commentRequest, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        String userId = userDetails.getUsername();
+        JobPostingComment updatedComment = jobPostingService.updateComment(commentId, userId, commentRequest.getComment());
+        return ResponseEntity.ok().body(updatedComment);
+    }
+
+    // 댓글 삭제
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(@PathVariable Long commentId, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        String userId = userDetails.getUsername();
+        jobPostingService.deleteComment(commentId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // 요청 바디 작성을 위한
+    public static class CommentRequest {
+        private String comment;
+
+        // Getters and setters
+
+        public String getComment() {
+            return comment;
+        }
+
+        public void setComment(String comment) {
+            this.comment = comment;
+        }
+    }
+
 
 }

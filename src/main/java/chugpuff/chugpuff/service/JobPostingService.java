@@ -6,6 +6,7 @@ import chugpuff.chugpuff.entity.JobPostingComment;
 import chugpuff.chugpuff.entity.LocationCode;
 import chugpuff.chugpuff.entity.Scrap;
 import chugpuff.chugpuff.repository.*;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -203,6 +204,45 @@ public class JobPostingService {
         jobPostingComment.setCreatedAt(LocalDateTime.now());
 
         return jobPostingCommentRepository.save(jobPostingComment);
+    }
+    // 댓글 수정
+    public JobPostingComment updateComment(Long commentId, String userId, String newComment) {
+        Optional<JobPostingComment> optionalComment = jobPostingCommentRepository.findById(commentId);
+
+        if (optionalComment.isEmpty()) {
+            throw new IllegalArgumentException("Comment not found with id: " + commentId);
+        }
+
+        JobPostingComment jobPostingComment = optionalComment.get();
+
+        if (!jobPostingComment.getMember().getId().equals(userId)) {
+            throw new IllegalArgumentException("You are not authorized to update this comment.");
+        }
+
+        jobPostingComment.setComment(newComment);
+        jobPostingComment.setUpdatedAt(LocalDateTime.now());
+
+        // 강제로 프록시 초기화
+        Hibernate.initialize(jobPostingComment.getMember());
+
+        return jobPostingCommentRepository.save(jobPostingComment);
+    }
+
+    // 댓글 삭제
+    public void deleteComment(Long commentId, String userId) {
+        Optional<JobPostingComment> optionalComment = jobPostingCommentRepository.findById(commentId);
+
+        if (optionalComment.isEmpty()) {
+            throw new IllegalArgumentException("Comment not found with id: " + commentId);
+        }
+
+        JobPostingComment jobPostingComment = optionalComment.get();
+
+        if (!jobPostingComment.getMember().getId().equals(userId)) {
+            throw new IllegalArgumentException("You are not authorized to delete this comment.");
+        }
+
+        jobPostingCommentRepository.delete(jobPostingComment);
     }
 }
 

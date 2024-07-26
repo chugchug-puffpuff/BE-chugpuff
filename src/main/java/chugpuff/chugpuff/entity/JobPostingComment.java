@@ -1,6 +1,7 @@
 package chugpuff.chugpuff.entity;
 
 import chugpuff.chugpuff.domain.Member;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Entity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -23,6 +24,7 @@ public class JobPostingComment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Member member; // 유저 ID
 
     @Column(name = "comment", nullable = false, length = 1000)
@@ -30,6 +32,8 @@ public class JobPostingComment {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    private LocalDateTime updatedAt;
 
     // Getters and Setters
 }
