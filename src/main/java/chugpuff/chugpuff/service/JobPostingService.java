@@ -3,9 +3,11 @@ package chugpuff.chugpuff.service;
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.entity.JobCode;
 import chugpuff.chugpuff.entity.LocationCode;
+import chugpuff.chugpuff.entity.Scrap;
 import chugpuff.chugpuff.repository.JobCodeRepository;
 import chugpuff.chugpuff.repository.LocationCodeRepository;
 import chugpuff.chugpuff.repository.MemberRepository;
+import chugpuff.chugpuff.repository.ScrapRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Service
 public class JobPostingService {
@@ -39,6 +42,12 @@ public class JobPostingService {
 
     @Autowired
     private MemberRepository memberRepository;
+
+    @Autowired
+    private MemberService memberService;
+
+    @Autowired
+    private ScrapRepository scrapRepository;
 
     //공고 조회 및 필터링
     public String getJobPostings(String regionName, String jobMidName, String jobName) {
@@ -129,6 +138,45 @@ public class JobPostingService {
 
         String url = builder.toUriString();
         return restTemplate.getForObject(url, String.class);
+    }
+
+    // 스크랩 토글
+    public void toggleScrap(String memberId, String jobId) {
+        Optional<Member> optionalMember = memberService.getMemberByUsername(memberId);
+
+        if (optionalMember.isEmpty()) {
+            throw new IllegalArgumentException("Member not found with id: " + memberId);
+        }
+
+        Member member = optionalMember.get();
+        Optional<Scrap> scrapOptional = scrapRepository.findByMemberAndJobId(member, jobId);
+
+        if (scrapOptional.isPresent()) {
+            // 이미 스크랩한 공고인 경우, 스크랩을 취소 (삭제)
+            scrapRepository.delete(scrapOptional.get());
+        } else {
+            // 스크랩하지 않은 공고인 경우, 스크랩 추가
+            Scrap scrap = new Scrap();
+            scrap.setMember(member);
+            scrap.setJobId(jobId);
+            scrapRepository.save(scrap);
+        }
+    }
+
+    // 사용자가 스크랩한 공고 조회
+    public List<String> getScrappedJobPostings(String memberId) {
+        Optional<Member> optionalMember = memberService.getMemberByUsername(memberId);
+
+        if (optionalMember.isEmpty()) {
+            throw new IllegalArgumentException("Member not found with id: " + memberId);
+        }
+
+        Member member = optionalMember.get();
+        List<Scrap> scraps = scrapRepository.findByMember(member);
+
+        return scraps.stream()
+                .map(scrap -> getJobDetails(scrap.getJobId())) //특정 공고 조회로 넘기기
+                .collect(Collectors.toList());
     }
 }
 
