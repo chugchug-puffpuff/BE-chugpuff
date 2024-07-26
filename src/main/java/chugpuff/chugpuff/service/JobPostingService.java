@@ -2,12 +2,10 @@ package chugpuff.chugpuff.service;
 
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.entity.JobCode;
+import chugpuff.chugpuff.entity.JobPostingComment;
 import chugpuff.chugpuff.entity.LocationCode;
 import chugpuff.chugpuff.entity.Scrap;
-import chugpuff.chugpuff.repository.JobCodeRepository;
-import chugpuff.chugpuff.repository.LocationCodeRepository;
-import chugpuff.chugpuff.repository.MemberRepository;
-import chugpuff.chugpuff.repository.ScrapRepository;
+import chugpuff.chugpuff.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +17,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -48,6 +47,9 @@ public class JobPostingService {
 
     @Autowired
     private ScrapRepository scrapRepository;
+
+    @Autowired
+    private JobPostingCommentRepository jobPostingCommentRepository;
 
     //공고 조회 및 필터링
     public String getJobPostings(String regionName, String jobMidName, String jobName) {
@@ -182,6 +184,25 @@ public class JobPostingService {
     // 특정 공고의 스크랩 수 조회
     public Long getJobScrapCount(String jobId) {
         return scrapRepository.countByJobId(jobId);
+    }
+
+    // 댓글 작성
+    public JobPostingComment addComment(String jobId, String userId, String comment) {
+        Optional<Member> optionalMember = memberRepository.findById(userId);
+
+        if (optionalMember.isEmpty()) {
+            throw new IllegalArgumentException("Member not found with id: " + userId);
+        }
+
+        Member member = optionalMember.get();
+
+        JobPostingComment jobPostingComment = new JobPostingComment();
+        jobPostingComment.setJobId(jobId);
+        jobPostingComment.setMember(member);
+        jobPostingComment.setComment(comment);
+        jobPostingComment.setCreatedAt(LocalDateTime.now());
+
+        return jobPostingCommentRepository.save(jobPostingComment);
     }
 }
 

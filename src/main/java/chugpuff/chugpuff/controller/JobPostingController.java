@@ -1,5 +1,6 @@
 package chugpuff.chugpuff.controller;
 
+import chugpuff.chugpuff.entity.JobPostingComment;
 import chugpuff.chugpuff.service.CustomUserDetails;
 import chugpuff.chugpuff.service.JobPostingService;
 import chugpuff.chugpuff.service.MemberService;
@@ -79,4 +80,14 @@ public class JobPostingController {
         Long scrapCount = jobPostingService.getJobScrapCount(jobId);
         return ResponseEntity.ok().body(scrapCount);
     }
+
+    // 댓글 작성
+    @PostMapping("/{jobId}/comments")
+    public ResponseEntity<JobPostingComment> addComment(@PathVariable String jobId, @RequestParam String comment, Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        String userId = userDetails.getUsername();
+        JobPostingComment jobPostingComment = jobPostingService.addComment(jobId, userId, comment);
+        return ResponseEntity.ok().body(jobPostingComment);
+    }
+
 }
