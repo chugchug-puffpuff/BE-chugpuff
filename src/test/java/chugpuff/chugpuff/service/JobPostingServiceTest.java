@@ -1,7 +1,10 @@
 package chugpuff.chugpuff.service;
 
+import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.entity.JobCode;
+import chugpuff.chugpuff.entity.JobPostingComment;
 import chugpuff.chugpuff.entity.LocationCode;
+import chugpuff.chugpuff.entity.Scrap;
 import chugpuff.chugpuff.repository.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,11 +26,14 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.lang.reflect.Field;
+import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -166,6 +172,180 @@ public class JobPostingServiceTest {
         Long count = jobPostingService.getJobScrapCount(jobId);
 
         assertEquals(10L, count);
+    }
+
+    @Test
+    public void testGetJobDetails() {
+        String jobId = "48698146";
+        String expectedResponse = "{\"jobs\":{\"count\":1,\"start\":0,\"total\":\"1\",\"job\":[{\"url\":\"http://www.saramin.co.kr/zf_user/jobs/relay/view?rec_idx=48698146&utm_source=job-search-api&utm_medium=api&utm_campaign=saramin-job-search-api\",\"active\":1,\"company\":{\"detail\":{\"href\":\"http://www ...";
+
+        when(restTemplate.getForEntity(any(URI.class), eq(String.class)))
+                .thenReturn(new ResponseEntity<>(expectedResponse, HttpStatus.OK));
+
+        String actualResponse = jobPostingService.getJobDetails(jobId);
+
+        try {
+
+            JsonNode expectedJsonNode = objectMapper.readTree(expectedResponse);
+            String expectedId = expectedJsonNode.path("jobs").path("job").get(0).path("id").asText();
+
+            JsonNode actualJsonNode = objectMapper.readTree(actualResponse);
+            String actualId = actualJsonNode.path("jobs").path("job").get(0).path("id").asText();
+
+            //id 필드 비교
+            assertEquals(expectedId, actualId);
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            throw new RuntimeException("JSON processing error", e);
+        }
+    }
+
+    @Test
+    public void testGetRecommendedJobPostingsForMember() {
+        String memberId = "member1";
+        Member member = new Member();
+        member.setId(memberId);
+        member.setJobKeyword("Java Developer");
+
+        when(memberRepository.findById(memberId)).thenReturn(Optional.of(member));
+        when(jobPostingService.getJobPostingsByKeywords(anyString(), anyString()))
+                .thenReturn("Job postings for Java Developer");
+
+        String result = jobPostingService.getRecommendedJobPostingsForMember(memberId);
+
+        assertEquals("Job postings for Java Developer", result);
+    }
+
+    @Test
+    public void testToggleScrap() {
+        String memberId = "member1";
+        String jobId = "job1";
+        Member member = new Member();
+        member.setId(memberId);
+
+        when(memberService.getMemberByUsername(memberId)).thenReturn(Optional.of(member));
+
+        Scrap scrap = new Scrap();
+        scrap.setJobId(jobId);
+        scrap.setMember(member);
+
+        // 첫 번째 케이스: 스크랩이 존재할 때
+        when(scrapRepository.findByMemberAndJobId(member, jobId)).thenReturn(Optional.of(scrap));
+        doNothing().when(scrapRepository).delete(scrap);
+
+        jobPostingService.toggleScrap(memberId, jobId);
+
+        verify(scrapRepository).delete(scrap);
+
+        // 두 번째 케이스: 스크랩이 존재하지 않을 때
+        when(scrapRepository.findByMemberAndJobId(member, jobId)).thenReturn(Optional.empty());
+        when(scrapRepository.save(any(Scrap.class))).thenReturn(scrap);
+
+        jobPostingService.toggleScrap(memberId, jobId);
+
+        verify(scrapRepository).save(any(Scrap.class));
+    }
+
+    @Test
+    public void testGetScrappedJobPostings() {
+        String memberId = "member1";
+        Member member = new Member();
+        member.setId(memberId);
+
+        Scrap scrap1 = new Scrap();
+        scrap1.setJobId("job1");
+
+        Scrap scrap2 = new Scrap();
+        scrap2.setJobId("job2");
+
+        List<Scrap> scraps = Arrays.asList(scrap1, scrap2);
+
+        when(memberService.getMemberByUsername(memberId)).thenReturn(Optional.of(member));
+        when(scrapRepository.findByMember(member)).thenReturn(scraps);
+
+        // Mock API call results
+        JobPostingService spyJobPostingService = spy(jobPostingService);
+        doReturn("Job details for job1").when(spyJobPostingService).getJobDetails("job1");
+        doReturn("Job details for job2").when(spyJobPostingService).getJobDetails("job2");
+
+        List<String> result = spyJobPostingService.getScrappedJobPostings(memberId);
+
+        assertEquals(2, result.size());
+        assertEquals("Job details for job1", result.get(0));
+        assertEquals("Job details for job2", result.get(1));
+    }
+
+    @Test
+    public void testAddComment() {
+        String jobId = "123";
+        String userId = "user1";
+        String commentText = "This is a test comment.";
+
+        Member member = new Member();
+        member.setId(userId);
+
+        JobPostingComment jobPostingComment = new JobPostingComment();
+        jobPostingComment.setJobId(jobId);
+        jobPostingComment.setMember(member);
+        jobPostingComment.setComment(commentText);
+        jobPostingComment.setCreatedAt(LocalDateTime.now());
+
+        when(memberRepository.findById(userId)).thenReturn(Optional.of(member));
+        when(jobPostingCommentRepository.save(any(JobPostingComment.class))).thenReturn(jobPostingComment);
+
+        JobPostingComment createdComment = jobPostingService.addComment(jobId, userId, commentText);
+
+        assertNotNull(createdComment);
+        assertEquals(jobId, createdComment.getJobId());
+        assertEquals(userId, createdComment.getMember().getId());
+        assertEquals(commentText, createdComment.getComment());
+        assertNotNull(createdComment.getCreatedAt());
+    }
+
+    @Test
+    public void testUpdateComment() {
+        Long commentId = 1L;
+        String userId = "user1";
+        String newContent = "Updated comment.";
+
+        Member member = new Member();
+        member.setId(userId);
+
+        JobPostingComment existingComment = new JobPostingComment();
+        existingComment.setId(commentId);
+        existingComment.setComment("Original comment.");
+        existingComment.setMember(member);
+
+        when(jobPostingCommentRepository.findById(commentId)).thenReturn(Optional.of(existingComment));
+        when(memberRepository.findById(userId)).thenReturn(Optional.of(member));
+        when(jobPostingCommentRepository.save(any(JobPostingComment.class))).thenReturn(existingComment);
+
+        JobPostingComment updatedComment = jobPostingService.updateComment(commentId, userId, newContent);
+
+        assertNotNull(updatedComment);
+        assertEquals(commentId, updatedComment.getId());
+        assertEquals(newContent, updatedComment.getComment());
+        assertEquals(userId, updatedComment.getMember().getId());
+    }
+
+    @Test
+    public void testDeleteComment() {
+        Long commentId = 1L;
+        String userId = "user1";
+
+        Member member = new Member();
+        member.setId(userId);
+
+        JobPostingComment existingComment = new JobPostingComment();
+        existingComment.setId(commentId);
+        existingComment.setMember(member);
+
+        when(jobPostingCommentRepository.findById(commentId)).thenReturn(Optional.of(existingComment));
+
+        jobPostingService.deleteComment(commentId, userId);
+
+        verify(jobPostingCommentRepository, times(1)).delete(existingComment);
     }
 
 }
