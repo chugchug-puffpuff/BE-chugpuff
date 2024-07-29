@@ -7,35 +7,40 @@ public class TimerService {
 
     private boolean isPaused = false;
     private boolean isStopped = false;
+    private long remainingTime;
+    private Thread timerThread;
 
+    // 타이머 시작
     public void startTimer(long duration, Runnable onFinish) {
-        new Thread(() -> {
+        isPaused = false;
+        isStopped = false;
+        remainingTime = duration;
+
+        timerThread = new Thread(() -> {
             long endTime = System.currentTimeMillis() + duration;
-            while (System.currentTimeMillis() < endTime) {
-                if (isStopped) break;
+            while (System.currentTimeMillis() < endTime && !isStopped) {
                 if (!isPaused) {
-                    // Update the timer display
-                    // ...
+                    remainingTime = endTime - System.currentTimeMillis();
+                    // 타이머 상태 업데이트 (필요 시 UI 업데이트 로직 추가)
+                    System.out.println("Remaining time: " + remainingTime / 1000 + " seconds");
                 }
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
             if (!isStopped) onFinish.run();
-        }).start();
+        });
+        timerThread.start();
     }
 
-    public void pauseTimer() {
-        isPaused = true;
-    }
-
-    public void resumeTimer() {
-        isPaused = false;
-    }
-
+    // 타이머 종료
     public void stopTimer() {
         isStopped = true;
+        if (timerThread != null && timerThread.isAlive()) {
+            timerThread.interrupt();
+        }
     }
 }
