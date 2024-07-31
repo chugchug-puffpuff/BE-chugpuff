@@ -63,9 +63,9 @@ public class MemberControllerTest {
 
         when(memberService.saveMember(any(Member.class))).thenReturn(savedMember);
 
-        Map<String, Boolean> emailVerificationStatus = new ConcurrentHashMap<>();
-        emailVerificationStatus.put(memberDTO.getEmail(), true);
-        setPrivateField(memberController, "emailVerificationStatus", emailVerificationStatus);
+//        Map<String, Boolean> emailVerificationStatus = new ConcurrentHashMap<>();
+//        emailVerificationStatus.put(memberDTO.getEmail(), true);
+//        setPrivateField(memberController, "emailVerificationStatus", emailVerificationStatus);
 
         ResponseEntity<?> response = memberController.addMember(memberDTO);
 
