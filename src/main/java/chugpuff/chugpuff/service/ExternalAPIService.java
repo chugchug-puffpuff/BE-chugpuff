@@ -3,10 +3,25 @@ package chugpuff.chugpuff.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.polly.PollyClient;
+import software.amazon.awssdk.services.polly.model.OutputFormat;
+import software.amazon.awssdk.services.polly.model.SynthesizeSpeechRequest;
+import software.amazon.awssdk.services.polly.model.SynthesizeSpeechResponse;
 
+import javax.annotation.PostConstruct;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,8 +41,18 @@ public class ExternalAPIService {
     @Value("${aws.secret.key}")
     private String awsSecretKey;
 
+    private PollyClient pollyClient;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @PostConstruct
+    public void init() {
+        AwsBasicCredentials awsCreds = AwsBasicCredentials.create(awsAccessKey, awsSecretKey);
+        this.pollyClient = PollyClient.builder()
+                .region(Region.AP_NORTHEAST_2)
+                .credentialsProvider(StaticCredentialsProvider.create(awsCreds))
+                .build();
+    }
 
     // ChatGPT API 호출 메서드
     public String callChatGPT(String prompt) {
@@ -56,20 +81,25 @@ public class ExternalAPIService {
         }
     }
 
-    // STT API 호출 메서드
-    public String callSTT(String audioUrl) {
-        String apiUrl = "https://api.example.com/stt";  // 실제 STT API URL로 변경
+    // 리턴제로 STT API 호출 메서드
+    public String callSTT(String audioFilePath) {
+        String apiUrl = "https://api.rev.ai/speechtotext/v1/jobs";
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         headers.set("Authorization", "Bearer " + sttApiKey);
 
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("audio_url", audioUrl);
+        File audioFile = new File(audioFilePath);
+        if (!audioFile.exists()) {
+            throw new RuntimeException("File not found: " + audioFilePath);
+        }
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("media", new FileSystemResource(audioFile));
 
-        ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class);
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, requestEntity, String.class);
 
         if (response.getStatusCode() == HttpStatus.OK) {
             return extractSTTResponse(response.getBody());
@@ -80,26 +110,26 @@ public class ExternalAPIService {
 
     // TTS API 호출 메서드
     public String callTTS(String text) {
-        String apiUrl = "https://polly.amazonaws.com/v1/speech";
+        SynthesizeSpeechRequest synthesizeSpeechRequest = SynthesizeSpeechRequest.builder()
+                .text(text)
+                .outputFormat(OutputFormat.MP3)
+                .voiceId("Joanna")
+                .build();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("x-amz-date", "YOUR_DATE");
-        headers.set("Authorization", "AWS4-HMAC-SHA256 Credential=" + awsAccessKey + "/YOUR_CREDENTIAL_SCOPE, SignedHeaders=YOUR_SIGNED_HEADERS, Signature=YOUR_SIGNATURE");
-
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("Text", text);
-        requestBody.put("OutputFormat", "mp3");
-        requestBody.put("VoiceId", "Joanna");
-
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-
-        ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.POST, request, String.class);
-
-        if (response.getStatusCode() == HttpStatus.OK) {
-            return extractTTSResponse(response.getBody());
-        } else {
-            throw new RuntimeException("TTS API 호출 실패: " + response.getStatusCode());
+        try (ResponseInputStream<SynthesizeSpeechResponse> synthesizeSpeechResponse = pollyClient.synthesizeSpeech(synthesizeSpeechRequest)) {
+            InputStream audioStream = synthesizeSpeechResponse;
+            String audioFilePath = "output.mp3";
+            File audioFile = new File(audioFilePath);
+            try (FileOutputStream outputStream = new FileOutputStream(audioFile)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = audioStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+            return audioFilePath;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save audio stream to file", e);
         }
     }
 
@@ -129,20 +159,6 @@ public class ExternalAPIService {
             throw new RuntimeException("Invalid response structure: " + responseBody);
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse STT response: " + e.getMessage(), e);
-        }
-    }
-
-    // TTS 응답에서 오디오 URL 추출
-    private String extractTTSResponse(String responseBody) {
-        try {
-            JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode audioUrlNode = root.path("audio_url");
-            if (audioUrlNode.isTextual()) {
-                return audioUrlNode.asText().trim();
-            }
-            throw new RuntimeException("Invalid response structure: " + responseBody);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to parse TTS response: " + e.getMessage(), e);
         }
     }
 }
