@@ -1,153 +1,152 @@
 package chugpuff.chugpuff.service;
 
-import chugpuff.chugpuff.controller.BoardController;
+import chugpuff.chugpuff.domain.Member;
+import chugpuff.chugpuff.dto.BoardDTO;
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.entity.Category;
+import chugpuff.chugpuff.entity.Comment;
 import chugpuff.chugpuff.repository.BoardRepository;
+import chugpuff.chugpuff.repository.CategoryRepository;
+import chugpuff.chugpuff.repository.MemberRepository;
+import chugpuff.chugpuff.repository.CommentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.core.Authentication;
 
-import java.util.Arrays;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
-class BoardServiceTest {
-
-    @InjectMocks
-    private BoardService boardService;
+public class BoardServiceTest {
 
     @Mock
     private BoardRepository boardRepository;
 
     @Mock
-    private CategoryService categoryService;
+    private CategoryRepository categoryRepository;
+
+    @Mock
+    private MemberRepository memberRepository;
+
+    @Mock
+    private CommentRepository commentRepository;
+
+    @InjectMocks
+    private BoardService boardService;
 
     @Mock
     private LikeService likeService;
 
+    @Mock
+    private Authentication authentication;
+
     @BeforeEach
-    public void setup() {
+    public void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    public void testSaveBoard() {
-        // Given
-        Board board = new Board();
-        board.setBoardTitle("Test Title");
-        board.setBoardContent("Test Content");
-        Category category = new Category();
-        category.setCategoryName("취업고민");
-
-        when(categoryService.findCategoryByName(anyString())).thenReturn(category);
-        when(boardRepository.save(any(Board.class))).thenReturn(board);
-
-        // When
-        Board savedBoard = boardService.save(board);
-
-        // Then
-        assertNotNull(savedBoard);
-        assertEquals("Test Title", savedBoard.getBoardTitle());
-        assertEquals("Test Content", savedBoard.getBoardContent());
-        verify(boardRepository, times(1)).save(board);
-    }
-
-    @Test
-    public void testUpdateBoard() {
-        // Given
+    public void testConvertToDTO() {
+        // Create a sample Board object
         Board board = new Board();
         board.setBoardNo(1);
-        board.setBoardTitle("Updated Title");
-        board.setBoardContent("Updated Content");
+        board.setBoardTitle("Test Title");
+        board.setBoardContent("Test Content");
+        LocalDateTime now = LocalDateTime.now();
+        board.setBoardDate(now);
+        board.setBoardModifiedDate(now);
+        board.setLikes(10);
+
+        Member member = new Member();
+        member.setName("Test Member");
+        board.setMember(member);
+
+        Comment comment1 = new Comment();
+        comment1.setBcContent("Test Comment 1");
+
+        Comment comment2 = new Comment();
+        comment2.setBcContent("Test Comment 2");
+
+        board.setComments(List.of(comment1, comment2));
+
+        Category category = new Category();
+        category.setCategoryId(1);
+        category.setCategoryName("정보공유");
+        board.setCategory(category);
+
+        // Convert Board to BoardDTO
+        BoardDTO boardDTO = boardService.convertToDTO(board);
+
+        // Assertions
+        assertEquals(board.getBoardNo(), boardDTO.getBoardNo());
+        assertEquals(board.getBoardTitle(), boardDTO.getBoardTitle());
+        assertEquals(board.getBoardContent(), boardDTO.getBoardContent());
+        assertEquals(board.getMember().getName(), boardDTO.getMemberName());
+        assertEquals(board.getBoardDate(), boardDTO.getBoardDate());
+        assertEquals(board.getBoardModifiedDate(), boardDTO.getBoardModifiedDate());
+        assertEquals(board.getLikes(), boardDTO.getLikes());
+        assertEquals(board.getComments().size(), boardDTO.getCommentCount());
+
+        List<String> expectedCommentContents = board.getComments().stream()
+                .map(Comment::getBcContent)
+                .collect(Collectors.toList());
+        assertEquals(expectedCommentContents, boardDTO.getCommentContents());
+
+        if (board.getCategory() != null) {
+            assertEquals(board.getCategory().getCategoryId(), boardDTO.getCategory().getCategoryId());
+            assertEquals(board.getCategory().getCategoryName(), boardDTO.getCategory().getCategoryName());
+        }
+    }
+    @Test
+    public void testUpdateBoard() {
+        when(authentication.getName()).thenReturn("user123");
+        Member member = new Member();
+        member.setId("user123");
+        when(memberRepository.findById("user123")).thenReturn(Optional.of(member));
+
+        Board board = new Board();
+        board.setMember(member);
+        board.setBoardNo(1);
+        when(boardRepository.findById(1)).thenReturn(Optional.of(board));
+
+        BoardDTO boardDTO = new BoardDTO();
+        boardDTO.setBoardTitle("Updated Title");
+        boardDTO.setBoardContent("Updated Content");
 
         when(boardRepository.save(any(Board.class))).thenReturn(board);
 
-        // When
-        Board updatedBoard = boardService.update(board);
+        BoardDTO updatedBoardDTO = boardService.update(1, boardDTO, authentication);
 
-        // Then
-        assertNotNull(updatedBoard);
-        assertEquals("Updated Title", updatedBoard.getBoardTitle());
-        assertEquals("Updated Content", updatedBoard.getBoardContent());
-        verify(boardRepository, times(1)).save(board);
+        assertEquals("Updated Title", updatedBoardDTO.getBoardTitle());
+        assertEquals("Updated Content", updatedBoardDTO.getBoardContent());
+        assertNotNull(updatedBoardDTO.getBoardModifiedDate());
     }
 
     @Test
     public void testDeleteBoard() {
-        // Given
-        int boardNo = 1;
+        when(authentication.getName()).thenReturn("user123");
+        Member member = new Member();
+        member.setId("user123");
+        when(memberRepository.findById("user123")).thenReturn(Optional.of(member));
 
-        doNothing().when(boardRepository).deleteById(boardNo);
-
-        // When
-        boardService.delete(boardNo);
-
-        // Then
-        verify(boardRepository, times(1)).deleteById(boardNo);
-    }
-
-    @Test
-    public void testFindById() {
-        // Given
-        int boardNo = 1;
         Board board = new Board();
-        board.setBoardNo(boardNo);
+        board.setMember(member);
+        board.setBoardNo(1);
+        when(boardRepository.findById(1)).thenReturn(Optional.of(board));
 
-        when(boardRepository.findById(boardNo)).thenReturn(Optional.of(board));
+        boardService.delete(1, authentication);
 
-        // When
-        Optional<Board> foundBoard = boardService.findById(boardNo);
-
-        // Then
-        assertTrue(foundBoard.isPresent());
-        assertEquals(boardNo, foundBoard.get().getBoardNo());
-        verify(boardRepository, times(1)).findById(boardNo);
-    }
-
-    @Test
-    public void testFindAll() {
-        // Given
-        Board board1 = new Board();
-        Board board2 = new Board();
-
-        when(boardRepository.findAll()).thenReturn(Arrays.asList(board1, board2));
-
-        // When
-        List<Board> boards = boardService.findAll();
-
-        // Then
-        assertEquals(2, boards.size());
-        verify(boardRepository, times(1)).findAll();
-    }
-
-    @Test
-    public void testSearchByKeyword() {
-        // Given
-        Board board1 = new Board();
-        board1.setBoardTitle("Test Title 1");
-        board1.setBoardContent("Test Content 1");
-
-        Board board2 = new Board();
-        board2.setBoardTitle("Test Title 2");
-        board2.setBoardContent("Another Content");
-
-        when(boardRepository.findByBoardTitleContainingOrBoardContentContaining("Test", "Test"))
-                .thenReturn(Arrays.asList(board1, board2));
-
-        // When
-        List<Board> result = boardService.searchByKeyword("Test");
-
-        // Then
-        assertEquals(2, result.size());
-        verify(boardRepository, times(1)).findByBoardTitleContainingOrBoardContentContaining("Test", "Test");
+        verify(boardRepository, times(1)).delete(board);
+        verify(likeService, times(1)).deleteLikesByBoardNo(1);
+        verify(commentRepository, times(1)).deleteByBoard_BoardNo(1);
     }
 }

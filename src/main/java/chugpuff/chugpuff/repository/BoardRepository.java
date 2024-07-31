@@ -23,4 +23,7 @@ public interface BoardRepository extends JpaRepository<Board, Integer> {
 
     // 제목이나 내용에 키워드가 포함된 게시글 찾기
     List<Board> findByBoardTitleContainingOrBoardContentContaining(String titleKeyword, String contentKeyword);
+
+    // 회원별 작성한 게시글 조회
+    List<Board> findByMember_Id(String memberId);
 }
