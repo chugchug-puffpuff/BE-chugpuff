@@ -131,6 +131,4 @@ public class JobPostingController {
             this.comment = comment;
         }
     }
-
-
 }
