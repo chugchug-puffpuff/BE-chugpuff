@@ -23,7 +23,7 @@ public class AuthController {
     }
 
     // 로그인
-    @PostMapping("/login")
+    @PostMapping("/api/login")
     @ResponseBody
     public ResponseEntity<?> login(@RequestBody LoginDTO loginDTO) {
         String id = loginDTO.getId();
@@ -52,7 +52,7 @@ public class AuthController {
     }
 
     // 로그아웃
-    @PostMapping("/logout")
+    @PostMapping("/api/logout")
     @ResponseBody
     public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
         if (token != null && token.startsWith("Bearer ")) {
