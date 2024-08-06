@@ -10,6 +10,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
@@ -35,24 +36,21 @@ public class AuthController {
             if (member != null) {
                 String token = JwtUtil.generateToken(id);
 
-                return ResponseEntity.ok().body("Login successful. Token: " + token);
+                return ResponseEntity.ok().body(Map.of("token", token, "name", member.getName()));
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Incorrect username or password.");
             }
         } catch (UsernameNotFoundException e) {
-            // 사용자가 존재하지 않을 경우
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found.");
         } catch (BadCredentialsException e) {
-            // 잘못된 자격 증명일 경우
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Incorrect username or password.");
         } catch (Exception e) {
-            // 그 외의 예외
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Login failed: " + e.getMessage());
         }
     }
 
     // 로그아웃
-    @PostMapping("/api/logout")
+    @PostMapping("/logout")
     @ResponseBody
     public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
         if (token != null && token.startsWith("Bearer ")) {
