@@ -4,17 +4,26 @@ import chugpuff.chugpuff.domain.AIInterview;
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.dto.AIInterviewDTO;
 import chugpuff.chugpuff.service.AIInterviewService;
+import chugpuff.chugpuff.service.ExternalAPIService;
 import chugpuff.chugpuff.service.MemberService;
 import chugpuff.chugpuff.service.TimerService;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
-@RequestMapping("/aiinterview")
+@RequestMapping("/api/aiinterview")
 public class AIInterviewController {
 
     @Autowired
@@ -25,6 +34,9 @@ public class AIInterviewController {
 
     @Autowired
     private TimerService timerService;
+
+    @Autowired
+    private ExternalAPIService externalAPIService;
 
     // AI 모의면접 저장
     @PostMapping

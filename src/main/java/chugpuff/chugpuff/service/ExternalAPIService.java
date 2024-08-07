@@ -172,7 +172,7 @@ public class ExternalAPIService {
         SynthesizeSpeechRequest synthesizeSpeechRequest = SynthesizeSpeechRequest.builder()
                 .text(text)
                 .outputFormat(OutputFormat.MP3)
-                .voiceId("Joanna")
+                .voiceId("Seoyeon")
                 .build();
         try (ResponseInputStream<SynthesizeSpeechResponse> synthesizeSpeechResponse = pollyClient.synthesizeSpeech(synthesizeSpeechRequest)) {
             InputStream audioStream = synthesizeSpeechResponse;
