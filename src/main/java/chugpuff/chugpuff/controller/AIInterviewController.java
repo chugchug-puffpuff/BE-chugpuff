@@ -41,9 +41,9 @@ public class AIInterviewController {
     }
 
     // AI 모의면접 시작
-    @PostMapping("/{id}/start")
-    public void startInterview(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        AIInterview aiInterview = aiInterviewService.getInterviewById(id);
+    @PostMapping("/{AIInterviewNo}/start")
+    public void startInterview(@PathVariable Long AIInterviewNo, @AuthenticationPrincipal UserDetails userDetails) {
+        AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
         if (aiInterview == null) {
             throw new RuntimeException("Interview not found");
         }
@@ -53,33 +53,33 @@ public class AIInterviewController {
         System.out.println("Interview owner user_id: " + aiInterview.getMember().getUser_id());
 
         // 여기서는 검증을 하지 않지만 로그를 남깁니다.
-        aiInterviewService.startInterview(id);
+        aiInterviewService.startInterview(AIInterviewNo);
     }
 
     // AI 모의면접 중지
-    @PostMapping("/{id}/stop")
+    @PostMapping("/{AIInterviewNo}/stop")
     public void stopInterview(@AuthenticationPrincipal UserDetails userDetails) {
         System.out.println("Logged in user: " + userDetails.getUsername());
         timerService.stopTimer();
     }
 
     // 즉시 피드백 저장
-    @PostMapping("/{id}/immediate-feedback")
-    public void saveImmediateFeedback(@PathVariable Long id, @RequestBody FeedbackRequest feedbackRequest, @AuthenticationPrincipal UserDetails userDetails) {
+    @PostMapping("/{AIInterviewNo}/immediate-feedback")
+    public void saveImmediateFeedback(@PathVariable Long AIInterviewNo, @RequestBody FeedbackRequest feedbackRequest, @AuthenticationPrincipal UserDetails userDetails) {
         System.out.println("Logged in user: " + userDetails.getUsername());
-        AIInterview aiInterview = aiInterviewService.getInterviewById(id);
+        AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
         if (aiInterview != null) {
             aiInterviewService.saveImmediateFeedback(aiInterview, feedbackRequest.getQuestion(), feedbackRequest.getAnswer(), feedbackRequest.getFeedback());
         }
     }
 
     // 전체 피드백 저장
-    @PostMapping("/{id}/overall-feedback")
-    public void saveOverallFeedback(@PathVariable Long id, @RequestBody FeedbackRequest feedbackRequest, @AuthenticationPrincipal UserDetails userDetails) {
+    @PostMapping("/{AIInterviewNo}/full-feedback")
+    public void saveFullFeedback(@PathVariable Long AIInterviewNo, @RequestBody FeedbackRequest feedbackRequest, @AuthenticationPrincipal UserDetails userDetails) {
         System.out.println("Logged in user: " + userDetails.getUsername());
-        AIInterview aiInterview = aiInterviewService.getInterviewById(id);
+        AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
         if (aiInterview != null) {
-            aiInterviewService.saveOverallFeedback(aiInterview, feedbackRequest.getQuestion(), feedbackRequest.getAnswer(), feedbackRequest.getFeedback());
+            aiInterviewService.saveFullFeedback(aiInterview, feedbackRequest.getQuestion(), feedbackRequest.getAnswer(), feedbackRequest.getFeedback());
         }
     }
 }

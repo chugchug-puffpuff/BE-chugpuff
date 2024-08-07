@@ -41,50 +41,86 @@ public class AIInterviewService {
 
     // 인터뷰 시작 메서드
     @Async
-    public void startInterview(Long id) {
-        AIInterview aiInterview = aiInterviewRepository.findById(id).orElseThrow(() -> new RuntimeException("Interview not found"));
+    public void startInterview(Long AIInterviewNo) {
+        AIInterview aiInterview = aiInterviewRepository.findById(AIInterviewNo).orElseThrow(() -> new RuntimeException("Interview not found"));
+
+        // 이전 응답 데이터 초기화
+        clearPreviousResponses(aiInterview);
+
         initializeInterviewSession(aiInterview);
         interviewInProgress = true;
 
         timerService.startTimer(30 * 60 * 1000, () -> endInterview(aiInterview));
 
-        while (interviewIsInProgress()) {
+        while (interviewInProgress) {
             handleInterviewProcess(aiInterview);
         }
 
-        if ("overall".equals(aiInterview.getFeedbackType())) {
-            handleOverallFeedback(aiInterview);
+        if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
+            handleFullFeedback(aiInterview);
         }
 
         endInterview(aiInterview);
     }
 
+    // 이전 응답 데이터 초기화 메서드
+    private void clearPreviousResponses(AIInterview aiInterview) {
+        List<AIInterviewIF> previousResponses = aiInterviewIFRepository.findByAiInterview(aiInterview);
+        for (AIInterviewIF response : previousResponses) {
+            aiInterviewIFRepository.delete(response);
+        }
+        aiInterview.setImmediateFeedbacks(null);
+        aiInterview.setOverallFeedback(null);
+        aiInterviewRepository.save(aiInterview); // 변경 사항 저장
+    }
+
     // 인터뷰 세션 초기화 및 시작 로직
     private void initializeInterviewSession(AIInterview aiInterview) {
-        String chatPrompt = "Starting an interview of type: " + aiInterview.getInterviewType();
+        String chatPrompt;
+        if ("인성 면접".equals(aiInterview.getInterviewType())) {
+            chatPrompt = "인성 면접을 시작합니다. 한글로 해주세요.";
+        } else if ("직무 면접".equals(aiInterview.getInterviewType())) {
+            String job = aiInterview.getMember().getJob();
+            String jobKeyword = aiInterview.getMember().getJobKeyword();
+            chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 직무 면접을 시작합니다. 한글로 해주세요.";
+        } else {
+            throw new RuntimeException("Invalid interview type");
+        }
+
+        // 피드백 방식을 ChatGPT 프롬프트에 포함
+        if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
+            chatPrompt += " 질문에 대답한 후 즉시 피드백을 제공해주세요.";
+        } else if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
+            chatPrompt += " 면접이 끝난 후 전체적인 피드백을 제공해주세요.";
+        }
+
+        System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
         externalAPIService.callChatGPT(chatPrompt);
-        System.out.println("Interview session initialized for: " + aiInterview.getInterviewType());
+        System.out.println("Interview session initialized for: " + aiInterview.getInterviewType() + " with " + aiInterview.getFeedbackType() + " feedback.");
     }
 
     // 인터뷰 진행 처리 메서드
     private void handleInterviewProcess(AIInterview aiInterview) {
         try {
             String question = getChatGPTQuestion(aiInterview);
+            System.out.println("Generated Question: " + question); // 질문 로그 출력
             String ttsQuestion = externalAPIService.callTTS(question);
             playAudio(ttsQuestion);
 
             String userAudioResponse = captureUserAudio();
             String sttResponse = externalAPIService.callSTT(userAudioResponse);
 
-            if ("immediate".equals(aiInterview.getFeedbackType())) {
+            saveUserResponse(aiInterview, question, sttResponse);
+
+            if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
                 String immediateFeedback = getChatGPTFeedback(sttResponse);
+                System.out.println("Generated Feedback: " + immediateFeedback); // 피드백 로그 출력
                 String ttsFeedback = externalAPIService.callTTS(immediateFeedback);
                 playAudio(ttsFeedback);
 
                 saveImmediateFeedback(aiInterview, question, sttResponse, immediateFeedback);
             }
 
-            saveUserResponse(aiInterview, question, sttResponse);
         } catch (Exception e) {
             e.printStackTrace();
             interviewInProgress = false;
@@ -93,8 +129,20 @@ public class AIInterviewService {
 
     // ChatGPT로부터 질문 생성
     private String getChatGPTQuestion(AIInterview aiInterview) {
-        String previousResponses = getPreviousResponses(aiInterview);
-        String chatPrompt = "Generate a question for a " + aiInterview.getInterviewType() + " interview. Previous responses: " + previousResponses;
+        String chatPrompt;
+
+        // 인터뷰 유형에 따라 프롬프트 수정
+        if ("인성 면접".equals(aiInterview.getInterviewType())) {
+            chatPrompt = "인성 면접을 위해 다음 질문을 생성해주세요. 질문은 하나씩 해주세요. ";
+        } else if ("직무 면접".equals(aiInterview.getInterviewType())) {
+            String job = aiInterview.getMember().getJob();
+            String jobKeyword = aiInterview.getMember().getJobKeyword();
+            chatPrompt = job + " 직무 면접을 위해 다음 질문을 생성해주세요. " + jobKeyword + "에 중점을 두고 있습니다. 질문은 하나씩 해주세요. ";
+        } else {
+            throw new RuntimeException("Invalid interview type");
+        }
+
+        System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
         return externalAPIService.callChatGPT(chatPrompt);
     }
 
@@ -110,7 +158,8 @@ public class AIInterviewService {
 
     // ChatGPT로부터 피드백 생성
     private String getChatGPTFeedback(String userResponse) {
-        String chatPrompt = "Provide feedback for the following response: " + userResponse;
+        String chatPrompt = "다음 응답에 대한 피드백을 제공해주세요: " + userResponse;
+        System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
         return externalAPIService.callChatGPT(chatPrompt);
     }
 
@@ -126,47 +175,43 @@ public class AIInterviewService {
 
     // 사용자 응답 저장
     public void saveUserResponse(AIInterview aiInterview, String question, String response) {
-        if (!"immediate".equals(aiInterview.getFeedbackType())) {
-            AIInterviewIF aiInterviewIF = new AIInterviewIF();
-            aiInterviewIF.setAiInterview(aiInterview);
-            aiInterviewIF.setI_question(question);
-            aiInterviewIF.setI_answer(response);
-            aiInterviewIFRepository.save(aiInterviewIF);
-        }
+        AIInterviewIF aiInterviewIF = new AIInterviewIF();
+        aiInterviewIF.setAiInterview(aiInterview);
+        aiInterviewIF.setI_question(question);
+        aiInterviewIF.setI_answer(response);
+        aiInterviewIFRepository.save(aiInterviewIF);
     }
 
     // 전체 피드백 처리
-    private void handleOverallFeedback(AIInterview aiInterview) {
+    private void handleFullFeedback(AIInterview aiInterview) {
         List<AIInterviewIF> responses = aiInterviewIFRepository.findByAiInterview(aiInterview);
-        StringBuilder feedbackText = new StringBuilder();
+        StringBuilder questionText = new StringBuilder();
+        StringBuilder answerText = new StringBuilder();
+
         for (AIInterviewIF response : responses) {
-            feedbackText.append(response.getI_question()).append(" ").append(response.getI_answer()).append(" ");
+            questionText.append(response.getI_question()).append(" ");
+            answerText.append(response.getI_answer()).append(" ");
         }
-        String overallFeedback = getChatGPTFeedback(feedbackText.toString());
-        String ttsFeedback = externalAPIService.callTTS(overallFeedback);
+
+        String fullFeedback = getChatGPTFeedback(questionText.toString() + answerText.toString());
+        String ttsFeedback = externalAPIService.callTTS(fullFeedback);
         playAudio(ttsFeedback);
 
-        if (!responses.isEmpty()) {
-            String firstQuestion = responses.get(0).getI_question();
-            String firstAnswer = responses.get(0).getI_answer();
-            saveOverallFeedback(aiInterview, firstQuestion, firstAnswer, overallFeedback);
-        } else {
-            saveOverallFeedback(aiInterview, "", "", overallFeedback);
-        }
+        saveFullFeedback(aiInterview, questionText.toString(), answerText.toString(), fullFeedback);
     }
 
     // 전체 피드백 저장
-    public void saveOverallFeedback(AIInterview aiInterview, String question, String answer, String feedback) {
+    public void saveFullFeedback(AIInterview aiInterview, String questions, String answers, String feedback) {
         AIInterviewFF aiInterviewFF = new AIInterviewFF();
         aiInterviewFF.setAiInterview(aiInterview);
-        aiInterviewFF.setF_question(question);
-        aiInterviewFF.setF_answer(answer);
+        aiInterviewFF.setF_question(questions);
+        aiInterviewFF.setF_answer(answers);
         aiInterviewFF.setF_feedback(feedback);
         aiInterviewFFRepository.save(aiInterviewFF);
     }
 
     // 인터뷰 진행 여부 확인
-    private boolean interviewIsInProgress() {
+    private boolean interviewInProgress() {
         return interviewInProgress;
     }
 
@@ -195,13 +240,8 @@ public class AIInterviewService {
     }
 
     // AI 면접 ID로 면접 조회
-    public AIInterview getInterviewById(Long id) {
-        return aiInterviewRepository.findById(id).orElse(null);
-    }
-
-    // 즉시 피드백 목록 조회
-    public List<AIInterviewIF> getImmediateFeedbacks(AIInterview aiInterview) {
-        return aiInterviewIFRepository.findByAiInterview(aiInterview);
+    public AIInterview getInterviewById(Long AIInterviewNo) {
+        return aiInterviewRepository.findById(AIInterviewNo).orElse(null);
     }
 
     // 인터뷰 종료 처리
