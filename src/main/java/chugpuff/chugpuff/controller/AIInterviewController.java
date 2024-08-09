@@ -18,8 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.File;
-import java.util.HashMap;
+        import java.io.File;
 import java.util.Map;
 
 @RestController
@@ -93,6 +92,48 @@ public class AIInterviewController {
         if (aiInterview != null) {
             aiInterviewService.saveFullFeedback(aiInterview, feedbackRequest.getQuestion(), feedbackRequest.getAnswer(), feedbackRequest.getFeedback());
         }
+    }
+
+    // TTS 요청 처리
+    @PostMapping("/tts")
+    public ResponseEntity<FileSystemResource> convertTextToSpeech(@RequestBody Map<String, String> requestBody) {
+        String text = requestBody.get("text");
+        String audioFilePath = externalAPIService.callTTS(text);
+        File audioFile = new File(audioFilePath);
+        if (!audioFile.exists()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        FileSystemResource resource = new FileSystemResource(audioFile);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=output.mp3");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentLength(audioFile.length())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
+    }
+
+    // 음성 파일을 STT로 변환하여 텍스트로 반환하고 ChatGPT로 보내기
+    @PostMapping("/{AIInterviewNo}/process-audio-response")
+    public ResponseEntity<String> processAudioResponse(@PathVariable Long AIInterviewNo, @RequestParam("audioFile") FileSystemResource audioFile) {
+        String audioFilePath = audioFile.getPath();
+        String sttText = externalAPIService.callSTT(audioFilePath);
+
+        AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
+        if (aiInterview == null) {
+            return ResponseEntity.badRequest().body("Interview not found");
+        }
+
+        String feedback = aiInterviewService.getChatGPTFeedback(sttText);
+
+        // 필요한 경우 즉시 피드백을 저장합니다.
+        if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
+            aiInterviewService.saveImmediateFeedback(aiInterview, "User's Question", sttText, feedback);
+        }
+
+        return ResponseEntity.ok(feedback);
     }
 }
 

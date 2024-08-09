@@ -6,12 +6,17 @@ import chugpuff.chugpuff.domain.AIInterviewIF;
 import chugpuff.chugpuff.repository.AIInterviewRepository;
 import chugpuff.chugpuff.repository.AIInterviewFFRepository;
 import chugpuff.chugpuff.repository.AIInterviewIFRepository;
+import javazoom.jl.decoder.JavaLayerException;
+import javazoom.jl.player.Player;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.sound.sampled.*;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -31,6 +36,8 @@ public class AIInterviewService {
 
     @Autowired
     private TimerService timerService;
+
+    private TargetDataLine microphone;
 
     private boolean interviewInProgress = false;
 
@@ -123,6 +130,7 @@ public class AIInterviewService {
 
         } catch (Exception e) {
             e.printStackTrace();
+            stopAudioCapture(); // 음성 캡처 중지
             interviewInProgress = false;
         }
     }
@@ -157,7 +165,7 @@ public class AIInterviewService {
     }
 
     // ChatGPT로부터 피드백 생성
-    private String getChatGPTFeedback(String userResponse) {
+    public String getChatGPTFeedback(String userResponse) {
         String chatPrompt = "다음 응답에 대한 피드백을 제공해주세요: " + userResponse;
         System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
         return externalAPIService.callChatGPT(chatPrompt);
@@ -218,25 +226,75 @@ public class AIInterviewService {
     // 음성 재생
     private void playAudio(String audioUrl) {
         System.out.println("Playing audio from URL: " + audioUrl);
+        try (FileInputStream fileInputStream = new FileInputStream(audioUrl)) {
+            Player player = new Player(fileInputStream);
+            player.play();
+        } catch (FileNotFoundException e) {
+            stopAudioCapture();
+            throw new RuntimeException("File not found: " + audioUrl, e);
+        } catch (JavaLayerException e) {
+            stopAudioCapture();
+            throw new RuntimeException("Failed to play audio", e);
+        } catch (IOException e) {
+            stopAudioCapture();
+            throw new RuntimeException("IO exception while playing audio", e);
+        }
     }
 
     // 사용자 음성 응답 캡처
     private String captureUserAudio() {
         String audioFilePath = "captured_audio.wav";
-        // 마이크 입력을 캡처하여 오디오 파일로 저장하는 로직 추가
-        // 예시: AudioSystem을 사용하여 마이크 입력 캡처
-        try (TargetDataLine microphone = AudioSystem.getTargetDataLine(new AudioFormat(16000, 16, 1, true, true))) {
-            microphone.open();
+        try {
+            AudioFormat format = new AudioFormat(16000, 16, 1, true, true);
+            DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+            microphone = (TargetDataLine) AudioSystem.getLine(info);
+            microphone.open(format);
             microphone.start();
+
             AudioInputStream audioStream = new AudioInputStream(microphone);
             File audioFile = new File(audioFilePath);
-            AudioSystem.write(audioStream, AudioFileFormat.Type.WAVE, audioFile);
-            microphone.stop();
-            microphone.close();
+
+            // 새 스레드에서 오디오 캡처 실행
+            new Thread(() -> {
+                try {
+                    System.out.println("Capturing audio...");
+                    AudioSystem.write(audioStream, AudioFileFormat.Type.WAVE, audioFile);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to capture audio", e);
+                }
+            }).start();
+
+            // 음성 데이터 감지 및 중지 로직 추가
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = audioStream.read(buffer, 0, buffer.length)) != -1) {
+                boolean isSilent = true;
+                for (int i = 0; i < bytesRead; i++) {
+                    if (buffer[i] != 0) {
+                        isSilent = false;
+                        break;
+                    }
+                }
+                if (isSilent) {
+                    System.out.println("Silence detected. Stopping audio capture.");
+                    stopAudioCapture();
+                    break;
+                }
+            }
         } catch (Exception e) {
+            stopAudioCapture();
             throw new RuntimeException("Failed to capture audio", e);
         }
         return audioFilePath;
+    }
+
+    // 음성 캡처 중지
+    private void stopAudioCapture() {
+        if (microphone != null && microphone.isOpen()) {
+            microphone.stop();
+            microphone.close();
+            System.out.println("Audio capture stopped.");
+        }
     }
 
     // AI 면접 ID로 면접 조회
@@ -247,6 +305,7 @@ public class AIInterviewService {
     // 인터뷰 종료 처리
     private void endInterview(AIInterview aiInterview) {
         interviewInProgress = false;
+        stopAudioCapture(); // 인터뷰 종료 시 음성 캡처 중지
         System.out.println("Interview session ended.");
         // 인터뷰 종료 후 추가 처리 로직 (예: 상태 업데이트, 로그 기록 등)
     }

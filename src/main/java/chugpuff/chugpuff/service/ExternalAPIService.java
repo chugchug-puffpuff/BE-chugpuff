@@ -44,6 +44,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.polly.model.SynthesizeSpeechRequest;
+import software.amazon.awssdk.services.polly.model.SynthesizeSpeechResponse;
+
 @Service
 public class ExternalAPIService {
     @Value("${openai.api.key}")
@@ -167,16 +171,30 @@ public class ExternalAPIService {
         }
     }
 
+    // STT 응답에서 텍스트 추출
+    private String extractSTTResponse(String responseBody) {
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode textNode = root.path("text");
+            if (textNode.isTextual()) {
+                return textNode.asText().trim();
+            }
+            throw new RuntimeException("Invalid response structure: " + responseBody);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse STT response: " + e.getMessage(), e);
+        }
+    }
+
     // TTS API 호출 메서드
     public String callTTS(String text) {
         SynthesizeSpeechRequest synthesizeSpeechRequest = SynthesizeSpeechRequest.builder()
                 .text(text)
-                .outputFormat(OutputFormat.MP3)
-                .voiceId("Seoyeon")
+                .outputFormat(OutputFormat.MP3) // MP3 형식으로 설정
+                .voiceId("Seoyeon") // "Seoyeon"을 사용하여 한국어 음성을 생성
                 .build();
         try (ResponseInputStream<SynthesizeSpeechResponse> synthesizeSpeechResponse = pollyClient.synthesizeSpeech(synthesizeSpeechRequest)) {
             InputStream audioStream = synthesizeSpeechResponse;
-            String audioFilePath = "output.mp3";
+            String audioFilePath = "output.mp3"; // 확장자를 .mp3로 설정
             File audioFile = new File(audioFilePath);
             try (FileOutputStream outputStream = new FileOutputStream(audioFile)) {
                 byte[] buffer = new byte[1024];
@@ -191,17 +209,4 @@ public class ExternalAPIService {
         }
     }
 
-    // STT 응답에서 텍스트 추출
-    private String extractSTTResponse(String responseBody) {
-        try {
-            JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode textNode = root.path("text");
-            if (textNode.isTextual()) {
-                return textNode.asText().trim();
-            }
-            throw new RuntimeException("Invalid response structure: " + responseBody);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to parse STT response: " + e.getMessage(), e);
-        }
-    }
 }
