@@ -46,21 +46,50 @@ public class AIInterviewService {
         return aiInterviewRepository.save(aiInterview);
     }
 
+    // 인터뷰 세션 초기화 및 질문 생성 메서드
+    private String initializeInterviewSession(AIInterview aiInterview) {
+        String chatPrompt;
+        if ("인성 면접".equals(aiInterview.getInterviewType())) {
+            chatPrompt = "인성 면접을 시작합니다. 한글로 해주세요.";
+        } else if ("직무 면접".equals(aiInterview.getInterviewType())) {
+            String job = aiInterview.getMember().getJob();
+            String jobKeyword = aiInterview.getMember().getJobKeyword();
+            chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 직무 면접을 시작합니다. 한글로 해주세요.";
+        } else {
+            throw new RuntimeException("Invalid interview type");
+        }
+
+        // 피드백 방식을 ChatGPT 프롬프트에 포함
+        if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
+            chatPrompt += " 질문은 하나씩만 하고 질문에 대답한 후 즉시 피드백을 제공하고 다음 질문을 해주세요.";
+        } else if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
+            chatPrompt += " 질문은 하나씩만 하고 대답을 하면 다음 질문을 해주세요. 면접이 끝난 후 전체적인 피드백을 제공해주세요.";
+        }
+
+        System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
+        return externalAPIService.callChatGPT(chatPrompt);  // ChatGPT에 프롬프트를 전송하고 첫 질문을 받아옵니다.
+    }
+
     // 인터뷰 시작 메서드
     @Async
     public void startInterview(Long AIInterviewNo) {
-        AIInterview aiInterview = aiInterviewRepository.findById(AIInterviewNo).orElseThrow(() -> new RuntimeException("Interview not found"));
+        AIInterview aiInterview = aiInterviewRepository.findById(AIInterviewNo)
+                .orElseThrow(() -> new RuntimeException("Interview not found"));
 
         // 이전 응답 데이터 초기화
         clearPreviousResponses(aiInterview);
 
-        initializeInterviewSession(aiInterview);
+        // 인터뷰 세션 초기화 및 첫 번째 질문 생성
+        String firstQuestion = initializeInterviewSession(aiInterview);
         interviewInProgress = true;
 
         timerService.startTimer(30 * 60 * 1000, () -> endInterview(aiInterview));
 
+        // 첫 번째 질문 처리
+        handleInterviewProcess(aiInterview, firstQuestion);
+
         while (interviewInProgress) {
-            handleInterviewProcess(aiInterview);
+            handleInterviewProcess(aiInterview, getChatGPTQuestion(aiInterview));
         }
 
         if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
@@ -81,35 +110,9 @@ public class AIInterviewService {
         aiInterviewRepository.save(aiInterview); // 변경 사항 저장
     }
 
-    // 인터뷰 세션 초기화 및 시작 로직
-    private void initializeInterviewSession(AIInterview aiInterview) {
-        String chatPrompt;
-        if ("인성 면접".equals(aiInterview.getInterviewType())) {
-            chatPrompt = "인성 면접을 시작합니다. 한글로 해주세요.";
-        } else if ("직무 면접".equals(aiInterview.getInterviewType())) {
-            String job = aiInterview.getMember().getJob();
-            String jobKeyword = aiInterview.getMember().getJobKeyword();
-            chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 직무 면접을 시작합니다. 한글로 해주세요.";
-        } else {
-            throw new RuntimeException("Invalid interview type");
-        }
-
-        // 피드백 방식을 ChatGPT 프롬프트에 포함
-        if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 질문은 하나씩만 하고 질문에 대답한 후 즉시 피드백을 제공하고 다음 질문을 해주세요. ";
-        } else if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 질문은 하나씩만 하고 대답을 하면 다음 질문을 해주세요. 면접이 끝난 후 전체적인 피드백을 제공해주세요.";
-        }
-
-        System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
-        externalAPIService.callChatGPT(chatPrompt);
-        System.out.println("Interview session initialized for: " + aiInterview.getInterviewType() + " with " + aiInterview.getFeedbackType() + " feedback.");
-    }
-
     // 인터뷰 진행 처리 메서드
-    private void handleInterviewProcess(AIInterview aiInterview) {
+    private void handleInterviewProcess(AIInterview aiInterview, String question) {
         try {
-            String question = getChatGPTQuestion(aiInterview);
             System.out.println("Generated Question: " + question); // 질문 로그 출력
             String ttsQuestion = externalAPIService.callTTS(question);
             playAudio(ttsQuestion);
@@ -137,31 +140,7 @@ public class AIInterviewService {
 
     // ChatGPT로부터 질문 생성
     private String getChatGPTQuestion(AIInterview aiInterview) {
-        String chatPrompt;
-
-        // 인터뷰 유형에 따라 프롬프트 수정
-        if ("인성 면접".equals(aiInterview.getInterviewType())) {
-            chatPrompt = "인성 면접을 위해 다음 질문을 생성해주세요. 질문은 하나씩 해주세요. ";
-        } else if ("직무 면접".equals(aiInterview.getInterviewType())) {
-            String job = aiInterview.getMember().getJob();
-            String jobKeyword = aiInterview.getMember().getJobKeyword();
-            chatPrompt = job + " 직무 면접을 위해 다음 질문을 생성해주세요. " + jobKeyword + "에 중점을 두고 있습니다. 질문은 하나씩 해주세요. ";
-        } else {
-            throw new RuntimeException("Invalid interview type");
-        }
-
-        System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
-        return externalAPIService.callChatGPT(chatPrompt);
-    }
-
-    // 이전 응답 가져오기
-    private String getPreviousResponses(AIInterview aiInterview) {
-        List<AIInterviewIF> responses = aiInterviewIFRepository.findByAiInterview(aiInterview);
-        StringBuilder responseText = new StringBuilder();
-        for (AIInterviewIF response : responses) {
-            responseText.append(response.getI_answer()).append(" ");
-        }
-        return responseText.toString();
+        return externalAPIService.callChatGPT("다음 질문을 생성해주세요.");
     }
 
     // ChatGPT로부터 피드백 생성
