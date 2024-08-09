@@ -154,10 +154,12 @@ public class ExternalAPIService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         headers.set("Authorization", "Bearer " + sttApiKey);
+
         File audioFile = new File(audioFilePath);
         if (!audioFile.exists()) {
             throw new RuntimeException("File not found: " + audioFilePath);
         }
+
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("media", new FileSystemResource(audioFile));
 

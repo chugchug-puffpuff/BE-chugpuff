@@ -96,9 +96,9 @@ public class AIInterviewService {
 
         // 피드백 방식을 ChatGPT 프롬프트에 포함
         if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 질문에 대답한 후 즉시 피드백을 제공해주세요.";
+            chatPrompt += " 질문은 하나씩만 하고 질문에 대답한 후 즉시 피드백을 제공하고 다음 질문을 해주세요. ";
         } else if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 면접이 끝난 후 전체적인 피드백을 제공해주세요.";
+            chatPrompt += " 질문은 하나씩만 하고 대답을 하면 다음 질문을 해주세요. 면접이 끝난 후 전체적인 피드백을 제공해주세요.";
         }
 
         System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
@@ -245,7 +245,8 @@ public class AIInterviewService {
     private String captureUserAudio() {
         String audioFilePath = "captured_audio.wav";
         try {
-            AudioFormat format = new AudioFormat(16000, 16, 1, true, true);
+            // 샘플링 속도를 44100 Hz로 설정
+            AudioFormat format = new AudioFormat(44100, 16, 1, true, true);
             DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
             microphone = (TargetDataLine) AudioSystem.getLine(info);
             microphone.open(format);
@@ -254,33 +255,10 @@ public class AIInterviewService {
             AudioInputStream audioStream = new AudioInputStream(microphone);
             File audioFile = new File(audioFilePath);
 
-            // 새 스레드에서 오디오 캡처 실행
-            new Thread(() -> {
-                try {
-                    System.out.println("Capturing audio...");
-                    AudioSystem.write(audioStream, AudioFileFormat.Type.WAVE, audioFile);
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to capture audio", e);
-                }
-            }).start();
+            // 오디오 캡처를 바로 진행
+            System.out.println("Capturing audio...");
+            AudioSystem.write(audioStream, AudioFileFormat.Type.WAVE, audioFile);
 
-            // 음성 데이터 감지 및 중지 로직 추가
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = audioStream.read(buffer, 0, buffer.length)) != -1) {
-                boolean isSilent = true;
-                for (int i = 0; i < bytesRead; i++) {
-                    if (buffer[i] != 0) {
-                        isSilent = false;
-                        break;
-                    }
-                }
-                if (isSilent) {
-                    System.out.println("Silence detected. Stopping audio capture.");
-                    stopAudioCapture();
-                    break;
-                }
-            }
         } catch (Exception e) {
             stopAudioCapture();
             throw new RuntimeException("Failed to capture audio", e);
