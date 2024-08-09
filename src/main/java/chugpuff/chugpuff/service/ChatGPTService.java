@@ -80,8 +80,7 @@ public class ChatGPTService {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         StringBuilder promptBuilder = new StringBuilder();
-        promptBuilder.append("다음은 사용자의 자기소개서 질문과 답변입니다.\n")
-                .append("자기소개서 첨삭을 위해 각 답변에 대해 피드백을 주고, 필요한 경우 대체되면 좋은 단어나 맞춤법, 띄어쓰기 검사도 해주세요. 마지막으로 피드백 내용을 참고해서 수정된 자기소개서도 보내주세요.\n\n");
+        promptBuilder.append("다음은 자기소개서 질문과 답변입니다. 맞춤법 검사 및 대체 단어 추천, 질문 의도와 답변 방향성 등 각 문항과 답변에 대한 피드백을 주고, 피드백을 참고하여 \"첨삭된 자기소개서 : \"이라 말하고 전체적으로 수정된 자기소개서 보내주세요.\n");
 
         for (int i = 0; i < details.size(); i++) {
             String question = details.get(i).getES_question();
@@ -89,12 +88,10 @@ public class ChatGPTService {
 
             // Null 또는 빈 문자열 체크
             if (question == null || question.trim().isEmpty()) {
-                log.warn("Question {} is null or empty!", i + 1);
                 question = "질문 없음";
             }
 
             if (answer == null || answer.trim().isEmpty()) {
-                log.warn("Answer {} is null or empty!", i + 1);
                 answer = "답변 없음";
             }
 
@@ -133,20 +130,10 @@ public class ChatGPTService {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
 
-            // 'feedback' 또는 'revisedSelfIntroduction' 필드를 찾아 피드백과 수정된 자기소개서로 분리
-            JsonNode feedbackNode = root.path("feedback");
-            JsonNode revisedSelfIntroductionNode = root.path("revisedSelfIntroduction");
-
-            if (feedbackNode.isMissingNode() || revisedSelfIntroductionNode.isMissingNode()) {
-                JsonNode answerNode = root.path("answer");
-                if (answerNode.isTextual()) {
-                    String feedback = answerNode.asText().trim();
-                    String revisedSelfIntroduction = generateRevisedSelfIntroduction(feedback); // 수정된 자기소개서를 생성하는 로직
-
-                    return feedback + "\n\n" + revisedSelfIntroduction;
-                }
-            } else if (feedbackNode.isTextual() && revisedSelfIntroductionNode.isTextual()) {
-                return feedbackNode.asText().trim() + "\n\n" + revisedSelfIntroductionNode.asText().trim();
+            // JSON에서 필요한 필드 추출
+            JsonNode feedbackNode = root.path("answer"); // 응답의 필드 이름에 따라 변경
+            if (feedbackNode.isTextual()) {
+                return feedbackNode.asText().trim();
             }
 
             throw new RuntimeException("Invalid response structure: " + responseBody);

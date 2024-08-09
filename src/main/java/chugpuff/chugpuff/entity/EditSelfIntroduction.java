@@ -22,15 +22,15 @@ public class EditSelfIntroduction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long eS_no;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String eS_feedback = "";
 
     @Column(nullable = false)
     private LocalDate eS_date;
 
-    @Column(nullable = false, columnDefinition = "LONGTEXT")
+    /*@Column(nullable = true, columnDefinition = "LONGTEXT")
     private String revisedSelfIntroduction = ""; // 수정된 자기소개서 저장
-
+*/
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private Member member;

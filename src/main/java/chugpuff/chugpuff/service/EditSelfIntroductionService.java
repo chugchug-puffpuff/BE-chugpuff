@@ -50,10 +50,8 @@ public class EditSelfIntroductionService {
         EditSelfIntroduction editSelfIntroduction = EditSelfIntroduction.builder()
                 .member(member)
                 .eS_date(LocalDate.now())
-                .eS_feedback("")
-                .revisedSelfIntroduction("")
+                .eS_feedback("")  // 초기 피드백 필드
                 .build();
-
 
         EditSelfIntroduction savedSelfIntroduction = editSelfIntroductionRepository.save(editSelfIntroduction);
 
@@ -78,22 +76,13 @@ public class EditSelfIntroductionService {
         // GPT 호출 및 피드백 처리
         log.info("ChatGPT 호출 시작");
         String response = chatGPTService.callChatGPTForFeedback(details);
-        String feedbackAndRevised = chatGPTService.extractChatGPTFeedback(response);
-        log.info("피드백과 수정된 자기소개서 추출: {}", feedbackAndRevised);
-
-        String[] parts = feedbackAndRevised.split("\n\n", 2);
-        String feedback = parts.length > 0 ? parts[0] : "";
-        String revisedSelfIntroduction = parts.length > 1 ? parts[1] : "";
-
-        log.info("피드백: {}", feedback);
-        log.info("수정된 자기소개서: {}", revisedSelfIntroduction);
+        String feedback = chatGPTService.extractChatGPTFeedback(response);
+        log.info("피드백 추출: {}", feedback);
 
         savedSelfIntroduction.setES_feedback(feedback);
-        savedSelfIntroduction.setRevisedSelfIntroduction(revisedSelfIntroduction);
         savedSelfIntroduction.setES_date(LocalDate.now());
 
         return editSelfIntroductionRepository.save(savedSelfIntroduction);
-
     }
 
     public List<EditSelfIntroduction> getAllSelfIntroductions() {
@@ -102,57 +91,4 @@ public class EditSelfIntroductionService {
         log.info("모든 자기소개서 조회 완료: {}", introductions);
         return introductions;
     }
-
-
-    public void checkFeedbackFlow(EditSelfIntroduction esi) {
-        log.info("Checklist: 피드백 플로우 체크 시작");
-
-        // 1. 사용자 식별 및 저장된 자기소개서 정보 로드
-        if (esi.getMember() != null && esi.getMember().getUser_id() != null) {
-            log.info("Checklist: 사용자 식별 성공 - User ID: " + esi.getMember().getUser_id());
-        } else {
-            log.error("Checklist: 사용자 식별 실패 - Member 객체 또는 User ID 없음");
-        }
-
-        // 2. 자기소개서 질문 및 답변 유효성 확인
-        List<EditSelfIntroductionDetails> details = esi.getDetails();
-        if (details != null && !details.isEmpty()) {
-            log.info("Checklist: 자기소개서 질문 및 답변 유효성 확인 - " + details.size() + "개의 질문/답변 확인");
-            for (EditSelfIntroductionDetails detail : details) {
-                if (detail.getES_question() == null || detail.getES_question().isEmpty()) {
-                    log.warn("Checklist: 질문이 비어 있음 - eSD_no: " + detail.getESD_no());
-                }
-                if (detail.getES_answer() == null || detail.getES_answer().isEmpty()) {
-                    log.warn("Checklist: 답변이 비어 있음 - eSD_no: " + detail.getESD_no());
-                }
-            }
-        } else {
-            log.warn("Checklist: 자기소개서 질문 및 답변이 비어 있음");
-        }
-
-        // 3. ChatGPT 서비스 호출 및 응답 유효성 확인
-        log.info("Checklist: ChatGPT 서비스 호출 시작");
-        String gptResponse = chatGPTService.callChatGPTForFeedback(details); // 가정: ChatGPT 호출 메서드
-        if (gptResponse == null || gptResponse.isEmpty()) {
-            log.error("Checklist: ChatGPT 응답 없음");
-        } else {
-            log.info("Checklist: ChatGPT 응답 수신 - 응답 내용: " + gptResponse);
-        }
-
-        // 4. 피드백 및 수정된 자기소개서 저장 유효성 확인
-        if (esi.getES_feedback() != null && !esi.getES_feedback().isEmpty()) {
-            log.info("Checklist: 피드백 저장 성공 - Feedback: " + esi.getES_feedback());
-        } else {
-            log.error("Checklist: 피드백 저장 실패 - Feedback 비어 있음");
-        }
-
-        if (esi.getRevisedSelfIntroduction() != null && !esi.getRevisedSelfIntroduction().isEmpty()) {
-            log.info("Checklist: 수정된 자기소개서 저장 성공 - 수정본: " + esi.getRevisedSelfIntroduction());
-        } else {
-            log.error("Checklist: 수정된 자기소개서 저장 실패 - 수정본 비어 있음");
-        }
-
-        log.info("Checklist: 피드백 플로우 체크 완료");
-    }
-
 }
