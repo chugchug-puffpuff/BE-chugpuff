@@ -1,5 +1,6 @@
 package chugpuff.chugpuff.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -13,10 +14,7 @@ import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.TrustStrategy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -53,8 +51,11 @@ public class ExternalAPIService {
     @Value("${openai.api.key}")
     private String openaiApiKey;
 
-    @Value("${stt.api.key}")
-    private String sttApiKey;
+    @Value("${rtzr.client.id}")
+    private String rtzrClientId;
+
+    @Value("${rtzr.client.secret}")
+    private String rtzrClientSecret;
 
     @Value("${aws.access.key}")
     private String awsAccessKey;
@@ -148,28 +149,153 @@ public class ExternalAPIService {
         }
     }
 
+    // 리턴제로 API에서 액세스 토큰을 가져오는 메서드
+    public String getRtzrAccessToken() {
+        String tokenUrl = "https://openapi.vito.ai/v1/authenticate";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("client_id", rtzrClientId);
+        body.add("client_secret", rtzrClientSecret);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JsonNode root = objectMapper.readTree(response.getBody());
+                return root.path("access_token").asText();
+            } else {
+                throw new RuntimeException("Failed to get access token: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error while fetching access token", e);
+        }
+    }
+
     // 리턴제로 STT API 호출 메서드
     public String callSTT(String audioFilePath) {
-        String apiUrl = "https://api.rev.ai/speechtotext/v1/jobs";
+        String apiUrl = "https://openapi.vito.ai/v1/transcribe";
+        String accessToken = getRtzrAccessToken();
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        headers.set("Authorization", "Bearer " + sttApiKey);
+        headers.set("Authorization", "Bearer " + accessToken);
 
         File audioFile = new File(audioFilePath);
         if (!audioFile.exists()) {
             throw new RuntimeException("File not found: " + audioFilePath);
         }
 
+        Map<String, Object> config = new HashMap<>();
+        config.put("use_diarization", true);
+        Map<String, Object> diarization = new HashMap<>();
+        diarization.put("spk_count", 2); // 화자 수 설정
+        config.put("diarization", diarization);
+        config.put("use_itn", true); // 영어/숫자/단위 변환 여부
+
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("media", new FileSystemResource(audioFile));
+        body.add("file", new FileSystemResource(audioFile));
+
+        try {
+            String configJson = new ObjectMapper().writeValueAsString(config);
+            body.add("config", configJson);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to convert config to JSON", e);
+        }
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-        ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
 
-        if (response.getStatusCode().is2xxSuccessful()) {
-            return extractSTTResponse(response.getBody());
-        } else {
-            throw new RuntimeException("STT API 호출 실패: " + response.getStatusCode());
+        System.out.println("Calling STT API at: " + apiUrl);
+        System.out.println("Authorization Header: " + headers.get("Authorization"));
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                JsonNode root = objectMapper.readTree(response.getBody());
+                String taskId = root.path("id").asText();
+                if (taskId != null && !taskId.isEmpty()) {
+                    return pollForSTTResult(taskId);
+                } else {
+                    throw new RuntimeException("Failed to obtain task ID from STT API response");
+                }
+            } else {
+                System.err.println("Error response from STT API: " + response.getStatusCode());
+                throw new RuntimeException("STT API 호출 실패: " + response.getStatusCode());
+            }
+        } catch (HttpClientErrorException e) {
+            System.err.println("HTTP Client Error: " + e.getResponseBodyAsString());
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Error while calling STT API", e);
+        }
+    }
+
+    // STT 응답에서 작업 ID 추출
+    private String extractTaskIdFromResponse(String responseBody) {
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode idNode = root.path("id");
+            if (idNode.isTextual()) {
+                return idNode.asText().trim();
+            }
+            throw new RuntimeException("Invalid response structure: " + responseBody);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse STT response: " + e.getMessage(), e);
+        }
+    }
+
+    // STT 작업 결과를 폴링하여 조회
+    private String pollForSTTResult(String taskId) {
+        String apiUrl = "https://openapi.vito.ai/v1/transcribe/" + taskId;
+        String accessToken = getRtzrAccessToken();
+        int maxRetries = 180;  // 최대 180회 시도 (약 3분)
+        int retries = 0;
+        int pollingInterval = 5000; // 5초 간격으로 폴링
+
+        try {
+            while (retries < maxRetries) {
+                try {
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.set("Authorization", "Bearer " + accessToken);
+
+                    HttpEntity<String> requestEntity = new HttpEntity<>(headers);
+                    ResponseEntity<String> response = restTemplate.exchange(apiUrl, HttpMethod.GET, requestEntity, String.class);
+
+                    if (response.getStatusCode().is2xxSuccessful()) {
+                        String result = extractSTTResponse(response.getBody());
+                        if (result != null) {
+                            System.out.println("STT Result: " + result);
+                            return result;
+                        } else {
+                            System.out.println("STT processing not complete. Status: " + response.getBody());
+                        }
+                    }
+
+                    // 아직 결과가 준비되지 않은 경우 일정 시간 후 재시도
+                    Thread.sleep(pollingInterval);
+                    retries++;
+
+                } catch (HttpClientErrorException e) {
+                    if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                        System.out.println("Access token expired, obtaining a new one.");
+                        accessToken = getRtzrAccessToken();  // 토큰 갱신
+                    } else {
+                        System.err.println("HTTP Client Error during polling: " + e.getResponseBodyAsString());
+                        throw e;
+                    }
+                } catch (InterruptedException e) {
+                    System.err.println("Polling interrupted, exiting: " + e.getMessage());
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+
+            throw new RuntimeException("STT result polling timed out after max retries");
+        } catch (Exception e) {
+            throw new RuntimeException("Error while polling for STT result", e);
         }
     }
 
@@ -177,11 +303,18 @@ public class ExternalAPIService {
     private String extractSTTResponse(String responseBody) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode textNode = root.path("text");
-            if (textNode.isTextual()) {
-                return textNode.asText().trim();
+            String status = root.path("status").asText();
+            if ("completed".equals(status)) {
+                StringBuilder resultText = new StringBuilder();
+                JsonNode utterances = root.path("results").path("utterances");
+                for (JsonNode utterance : utterances) {
+                    resultText.append(utterance.path("msg").asText()).append(" ");
+                }
+                return resultText.toString().trim();
+            } else if ("failed".equals(status)) {
+                throw new RuntimeException("STT processing failed");
             }
-            throw new RuntimeException("Invalid response structure: " + responseBody);
+            return null;  // 작업이 아직 완료되지 않은 경우 null 반환
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse STT response: " + e.getMessage(), e);
         }
