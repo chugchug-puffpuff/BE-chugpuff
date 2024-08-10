@@ -13,10 +13,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.sound.sampled.*;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.util.List;
 
 @Service
@@ -223,25 +220,81 @@ public class AIInterviewService {
     // 사용자 음성 응답 캡처
     private String captureUserAudio() {
         String audioFilePath = "captured_audio.wav";
+        File audioFile = new File(audioFilePath);
+
         try {
             // 샘플링 속도를 44100 Hz로 설정
             AudioFormat format = new AudioFormat(44100, 16, 1, true, true);
             DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+
+            // 마이크 초기화
             microphone = (TargetDataLine) AudioSystem.getLine(info);
             microphone.open(format);
             microphone.start();
 
+            System.out.println("Microphone opened and audio capture started...");
+
+            // AudioInputStream 생성
             AudioInputStream audioStream = new AudioInputStream(microphone);
-            File audioFile = new File(audioFilePath);
 
-            // 오디오 캡처를 바로 진행
-            System.out.println("Capturing audio...");
-            AudioSystem.write(audioStream, AudioFileFormat.Type.WAVE, audioFile);
+            // 파일에 음성 데이터를 쓰기 위한 준비
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int silenceThreshold = 1000; // 침묵 시간 기준 (밀리초)
+            long silenceDuration = 0;
+            boolean isSilent;
+            boolean recording = true;
 
-        } catch (Exception e) {
+            while (recording) {
+                int bytesRead = audioStream.read(buffer, 0, buffer.length);
+
+                if (bytesRead == -1) {
+                    break;
+                }
+
+                isSilent = true;
+                for (int i = 0; i < bytesRead; i++) {
+                    if (Math.abs(buffer[i]) > 10) { // 작은 값도 무시하지 않도록 수정
+                        isSilent = false;
+                        silenceDuration = 0;
+                        break;
+                    }
+                }
+
+                if (isSilent) {
+                    silenceDuration += (bytesRead / format.getFrameSize()) / (float) format.getFrameRate() * 1000;
+                    System.out.println("Silence duration: " + silenceDuration);
+                    if (silenceDuration >= silenceThreshold) {
+                        System.out.println("Silence detected. Stopping audio capture.");
+                        recording = false;
+                    }
+                }
+
+                byteArrayOutputStream.write(buffer, 0, bytesRead);
+            }
+
+            // ByteArrayOutputStream을 ByteArrayInputStream으로 변환
+            byte[] audioData = byteArrayOutputStream.toByteArray();
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(audioData);
+
+            // 새 AudioInputStream을 생성하여 파일로 저장
+            try (AudioInputStream finalAudioStream = new AudioInputStream(byteArrayInputStream, format, audioData.length / format.getFrameSize())) {
+                AudioSystem.write(finalAudioStream, AudioFileFormat.Type.WAVE, audioFile);
+                System.out.println("Audio data written to file: " + audioFilePath);
+            }
+
+        } catch (LineUnavailableException e) {
+            System.err.println("Microphone line is unavailable: " + e.getMessage());
+            stopAudioCapture();
+            throw new RuntimeException("Failed to open microphone line", e);
+        } catch (IOException e) {
+            System.err.println("Failed to write audio data to file: " + e.getMessage());
             stopAudioCapture();
             throw new RuntimeException("Failed to capture audio", e);
+        } finally {
+            stopAudioCapture();
         }
+
         return audioFilePath;
     }
 
