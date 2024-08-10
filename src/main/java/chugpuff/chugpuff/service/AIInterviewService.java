@@ -58,9 +58,9 @@ public class AIInterviewService {
 
         // 피드백 방식을 ChatGPT 프롬프트에 포함
         if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 질문은 하나씩만 하고 질문에 대답한 후 즉시 피드백을 제공하고 다음 질문을 해주세요.";
+            chatPrompt += " 질문은 하나씩만 하고 질문에 대답한 후 즉시 피드백을 제공하고 다음 질문을 해주세요. 질문을 할 때는 \\\"질문 : \\\"이라 말하고 질문하고 피드백을 할 때는 \\\"피드백 : \\\"이라 말하세요.";
         } else if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 질문은 하나씩만 하고 대답을 하면 다음 질문을 해주세요. 면접이 끝난 후 전체적인 피드백을 제공해주세요.";
+            chatPrompt += " 질문은 하나씩만 하고 대답을 하면 다음 질문을 해주세요. 면접이 끝난 후 전체적인 피드백을 제공해주세요. 질문을 할 때는 \\\"질문 : \\\"이라 말하고 질문하고 피드백을 할 때는 \\\"피드백 : \\\"이라 말하세요.";
         }
 
         System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
