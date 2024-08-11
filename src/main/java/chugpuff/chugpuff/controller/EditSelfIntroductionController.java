@@ -39,10 +39,35 @@ public class EditSelfIntroductionController {
         return ResponseEntity.ok(editSelfIntroduction);
     }
 
-    // 자기소개서 조회
+    //모든 첨삭된 자기소개서 조회
     @GetMapping("/list")
-    public List<EditSelfIntroduction> getAllSelfIntroductions() {
-        return editSelfIntroductionService.getAllSelfIntroductions();
+    public List<EditSelfIntroduction> getSelfIntroductionsByMember(@AuthenticationPrincipal UserDetails userDetails) {
+        // 현재 인증된 사용자의 username을 가져옴
+        String username = userDetails.getUsername();
+
+        // username을 이용하여 Member 조회
+        Member member = memberService.getMemberByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("해당 멤버를 찾을 수 없습니다."));
+
+        // 해당 멤버의 자기소개서 목록 반환
+        return editSelfIntroductionService.getSelfIntroductionsByMember(member);
     }
+
+
+    //특정 첨삭된 자기소개서 조회
+    @GetMapping("/{id}")
+    public ResponseEntity<EditSelfIntroduction> getSelfIntroductionById(@PathVariable Long id) {
+        EditSelfIntroduction editSelfIntroduction = editSelfIntroductionService.getSelfIntroductionById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 자기소개서를 찾을 수 없습니다."));
+        return ResponseEntity.ok(editSelfIntroduction);
+    }
+
+    // 특정 첨삭된 자기소개서 삭제
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteSelfIntroduction(@PathVariable Long id) {
+        editSelfIntroductionService.deleteSelfIntroductionById(id);
+        return ResponseEntity.noContent().build();
+    }
+
 }
 

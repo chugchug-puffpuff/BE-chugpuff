@@ -12,9 +12,9 @@ import java.util.List;
 @Builder
 @Getter
 @Setter
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString(exclude = "details")
 @Table(name = "editSelfIntroduction")
 public class EditSelfIntroduction {
 
@@ -28,9 +28,6 @@ public class EditSelfIntroduction {
     @Column(nullable = false)
     private LocalDate eS_date;
 
-    /*@Column(nullable = true, columnDefinition = "LONGTEXT")
-    private String revisedSelfIntroduction = ""; // 수정된 자기소개서 저장
-*/
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private Member member;

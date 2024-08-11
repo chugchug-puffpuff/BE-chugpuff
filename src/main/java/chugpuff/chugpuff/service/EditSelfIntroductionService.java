@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -85,10 +86,24 @@ public class EditSelfIntroductionService {
         return editSelfIntroductionRepository.save(savedSelfIntroduction);
     }
 
-    public List<EditSelfIntroduction> getAllSelfIntroductions() {
-        log.info("모든 자기소개서 조회 시작");
-        List<EditSelfIntroduction> introductions = editSelfIntroductionRepository.findAll();
-        log.info("모든 자기소개서 조회 완료: {}", introductions);
+    //모든 첨삭된 자소서 조회
+    public List<EditSelfIntroduction> getSelfIntroductionsByMember(Member member) {
+        log.info("특정 멤버의 자기소개서 조회 시작: {}", member.getName());
+        List<EditSelfIntroduction> introductions = editSelfIntroductionRepository.findByMember(member);
+        log.info("특정 멤버의 자기소개서 조회 완료: {}", introductions);
         return introductions;
     }
+
+
+    //특정 첨삭된 자소서 조회
+    public Optional<EditSelfIntroduction> getSelfIntroductionById(Long id) {
+        return editSelfIntroductionRepository.findById(id);
+    }
+
+    //특정 첨삭된 자소서 삭제
+    public void deleteSelfIntroductionById(Long id) {
+        editSelfIntroductionRepository.deleteById(id);
+    }
+
+
 }

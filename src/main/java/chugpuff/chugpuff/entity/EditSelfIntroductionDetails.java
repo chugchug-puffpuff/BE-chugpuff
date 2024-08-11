@@ -10,9 +10,9 @@ import lombok.*;
 @Builder
 @Getter
 @Setter
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
+@ToString(exclude = "editSelfIntroduction")
 @Table(name = "editSelfIntroductionDetails")
 public class EditSelfIntroductionDetails {
 
