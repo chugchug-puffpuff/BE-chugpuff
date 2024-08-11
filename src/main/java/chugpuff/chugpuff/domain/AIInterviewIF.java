@@ -18,5 +18,7 @@ public class AIInterviewIF {
 
     private String i_question;
     private String i_answer;
+
+    @Column(columnDefinition = "TEXT")
     private String i_feedback;
 }

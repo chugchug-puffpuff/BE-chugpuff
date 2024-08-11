@@ -3,6 +3,7 @@ package chugpuff.chugpuff.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -26,4 +27,11 @@ public class AIInterview {
 
     @OneToOne(mappedBy = "aiInterview", cascade = CascadeType.ALL)
     private AIInterviewFF overallFeedback;
+
+    private LocalDateTime aiInterviewDate;
+
+    @PrePersist
+    protected void onCreate() {
+        this.aiInterviewDate = LocalDateTime.now();
+    }
 }
