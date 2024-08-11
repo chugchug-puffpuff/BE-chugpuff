@@ -126,7 +126,7 @@ public class AIInterviewController {
             return ResponseEntity.badRequest().body("Interview not found");
         }
 
-        String feedback = aiInterviewService.getChatGPTFeedback(sttText);
+        String feedback = aiInterviewService.getChatGPTFeedback(sttText, aiInterview);
 
         // 필요한 경우 즉시 피드백을 저장합니다.
         if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {

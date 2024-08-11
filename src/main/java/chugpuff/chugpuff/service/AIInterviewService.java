@@ -47,24 +47,44 @@ public class AIInterviewService {
     private String initializeInterviewSession(AIInterview aiInterview) {
         String chatPrompt;
         if ("인성 면접".equals(aiInterview.getInterviewType())) {
-            chatPrompt = "인성 면접을 시작합니다. 한글로 해주세요.";
+            chatPrompt = "인성 면접을 시작합니다. 면접의 주제는 '인성면접' 입니다. 한글로 해주세요.";
         } else if ("직무 면접".equals(aiInterview.getInterviewType())) {
             String job = aiInterview.getMember().getJob();
             String jobKeyword = aiInterview.getMember().getJobKeyword();
-            chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 직무 면접을 시작합니다. 한글로 해주세요.";
+            chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 직무 면접을 시작합니다. " + "면접의 주제는 " + job + " 직무의 " + jobKeyword + "입니다. 한글로 해주세요.";
         } else {
             throw new RuntimeException("Invalid interview type");
         }
 
         // 피드백 방식을 ChatGPT 프롬프트에 포함
         if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 질문은 하나씩만 하고 질문에 대답한 후 즉시 피드백을 제공하고 다음 질문을 해주세요. 질문을 할 때는 \\\"질문 : \\\"이라 말하고 질문하고 피드백을 할 때는 \\\"피드백 : \\\"이라 말하세요.";
+            chatPrompt += " 질문은 하나씩만 하고 질문에 대답한 후 즉시 피드백을 제공하고 다음 질문을 해주세요. 질문을 할 때는 \\\"질문 : \\\"이라 말하고 질문해주세요. 바로 질문해주세요.";
         } else if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 질문은 하나씩만 하고 대답을 하면 다음 질문을 해주세요. 면접이 끝난 후 전체적인 피드백을 제공해주세요. 질문을 할 때는 \\\"질문 : \\\"이라 말하고 질문하고 피드백을 할 때는 \\\"피드백 : \\\"이라 말하세요.";
+            chatPrompt += " 질문은 하나씩만 하고 대답을 하면 다음 질문을 해주세요. 면접이 끝난 후 전체적인 피드백을 제공해주세요. 질문을 할 때는 \\\"질문 : \\\"이라 말하고 질문해주세요. 바로 질문해주세요.";
         }
 
         System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
-        return externalAPIService.callChatGPT(chatPrompt);  // ChatGPT에 프롬프트를 전송하고 첫 질문을 받아옵니다.
+        String firstResponse = externalAPIService.callChatGPT(chatPrompt);
+
+        // 응답에서 질문만 추출
+        return extractQuestionOrFeedbackFromResponse(firstResponse, false);
+    }
+
+    // 응답에서 질문 또는 피드백을 추출하는 메서드
+    private String extractQuestionOrFeedbackFromResponse(String response, boolean isFeedback) {
+        if (response.startsWith("질문: ")) {
+            return response.substring("질문: ".length()).trim();
+        } else if (response.startsWith("피드백: ")) {
+            if (isFeedback) {
+                return response.substring("피드백: ".length()).trim();
+            } else {
+                // 질문을 기대했지만 피드백이 반환된 경우에 대한 처리
+                throw new RuntimeException("Expected a question, but received feedback instead.");
+            }
+        } else {
+            // "질문: " 또는 "피드백: "으로 시작하지 않는 경우, 유연하게 처리하기 위해 예외를 발생시키지 않고 직접 반환
+            return response.trim();
+        }
     }
 
     // 인터뷰 시작 메서드
@@ -83,10 +103,13 @@ public class AIInterviewService {
         timerService.startTimer(30 * 60 * 1000, () -> endInterview(aiInterview));
 
         // 첫 번째 질문 처리
-        handleInterviewProcess(aiInterview, firstQuestion);
+        String lastResponse = "";
+        lastResponse = handleInterviewProcess(aiInterview, firstQuestion, lastResponse);
 
         while (interviewInProgress) {
-            handleInterviewProcess(aiInterview, getChatGPTQuestion(aiInterview));
+            String nextQuestion = getChatGPTQuestion(aiInterview, firstQuestion, lastResponse);
+            lastResponse = handleInterviewProcess(aiInterview, nextQuestion, lastResponse);
+            firstQuestion = nextQuestion;
         }
 
         if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
@@ -108,7 +131,7 @@ public class AIInterviewService {
     }
 
     // 인터뷰 진행 처리 메서드
-    private void handleInterviewProcess(AIInterview aiInterview, String question) {
+    private String handleInterviewProcess(AIInterview aiInterview, String question, String lastResponse) {
         try {
             System.out.println("Generated Question: " + question); // 질문 로그 출력
             String ttsQuestion = externalAPIService.callTTS(question);
@@ -117,32 +140,77 @@ public class AIInterviewService {
             String userAudioResponse = captureUserAudio();
             String sttResponse = externalAPIService.callSTT(userAudioResponse);
 
-            saveUserResponse(aiInterview, question, sttResponse);
-
             if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-                String immediateFeedback = getChatGPTFeedback(sttResponse);
+                // AIInterview 객체를 함께 전달하여 getChatGPTFeedback 호출
+                String immediateFeedback = getChatGPTFeedback(sttResponse, aiInterview);
                 System.out.println("Generated Feedback: " + immediateFeedback); // 피드백 로그 출력
                 String ttsFeedback = externalAPIService.callTTS(immediateFeedback);
                 playAudio(ttsFeedback);
 
+                // 질문, 답변, 피드백을 한 번에 저장
                 saveImmediateFeedback(aiInterview, question, sttResponse, immediateFeedback);
+            } else {
+                // 전체 피드백의 경우 피드백 없이 저장 (이 경우는 한 번만 저장될 것입니다)
+                saveUserResponse(aiInterview, question, sttResponse);
             }
+
+            return sttResponse; // 마지막 응답 반환
 
         } catch (Exception e) {
             e.printStackTrace();
             stopAudioCapture(); // 음성 캡처 중지
             interviewInProgress = false;
+            return null;
         }
     }
 
     // ChatGPT로부터 질문 생성
-    private String getChatGPTQuestion(AIInterview aiInterview) {
-        return externalAPIService.callChatGPT("다음 질문을 생성해주세요.");
+    private String getChatGPTQuestion(AIInterview aiInterview, String lastQuestion, String lastResponse) {
+        String chatPrompt;
+
+        if ("직무 면접".equals(aiInterview.getInterviewType())) {
+            chatPrompt = String.format(
+                    "당신은 지금 %s 직무 면접을 진행 중입니다. 면접의 주제는 '%s 직무의 %s'입니다. "
+                            + "이전 질문은: \"%s\" "
+                            + "지원자의 대답은: \"%s\" "
+                            + "이 정보를 바탕으로, 주제에 맞는 다음 질문을 '질문: '으로 시작하여 생성해 주세요. 주제에서 벗어나지 마세요.",
+                    aiInterview.getMember().getJob(),
+                    aiInterview.getMember().getJob(),
+                    aiInterview.getMember().getJobKeyword(),
+                    lastQuestion,
+                    lastResponse
+            );
+        } else if ("인성 면접".equals(aiInterview.getInterviewType())) {
+            chatPrompt = String.format(
+                    "당신은 지금 인성 면접을 진행 중입니다. 면접의 주제는 '인성면접' 입니다. "
+                            + "이전 질문은: \"%s\" "
+                            + "지원자의 대답은: \"%s\" "
+                            + "이 정보를 바탕으로, 주제에 맞는 다음 질문을 '질문: '으로 시작하여 생성해 주세요. 주제에서 벗어나지 마세요.",
+                    lastQuestion,
+                    lastResponse
+            );
+        } else {
+            throw new RuntimeException("Invalid interview type");
+        }
+
+        return externalAPIService.callChatGPT(chatPrompt);
     }
 
     // ChatGPT로부터 피드백 생성
-    public String getChatGPTFeedback(String userResponse) {
-        String chatPrompt = "다음 응답에 대한 피드백을 제공해주세요: " + userResponse;
+    public String getChatGPTFeedback(String userResponse, AIInterview aiInterview) {
+        String chatPrompt = "다음 응답에 대해 '피드백: '으로 시작하는 피드백을 제공해주세요: " + userResponse;
+
+        if ("직무 면접".equals(aiInterview.getInterviewType())) {
+            chatPrompt += String.format(
+                    " 이 피드백은 %s 직무 면접을 진행 중이며, 주제는 '%s 직무의 %s'입니다.",
+                    aiInterview.getMember().getJob(),
+                    aiInterview.getMember().getJob(),
+                    aiInterview.getMember().getJobKeyword()
+            );
+        } else if ("인성 면접".equals(aiInterview.getInterviewType())) {
+            chatPrompt += " 이 피드백은 인성 면접 중입니다.";
+        }
+
         System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
         return externalAPIService.callChatGPT(chatPrompt);
     }
@@ -177,7 +245,8 @@ public class AIInterviewService {
             answerText.append(response.getI_answer()).append(" ");
         }
 
-        String fullFeedback = getChatGPTFeedback(questionText.toString() + answerText.toString());
+        // AIInterview 객체를 함께 전달하여 getChatGPTFeedback 호출
+        String fullFeedback = getChatGPTFeedback(questionText.toString() + answerText.toString(), aiInterview); // AIInterview 객체 추가
         String ttsFeedback = externalAPIService.callTTS(fullFeedback);
         playAudio(ttsFeedback);
 
