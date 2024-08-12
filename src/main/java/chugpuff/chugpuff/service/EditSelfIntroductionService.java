@@ -25,14 +25,17 @@ public class EditSelfIntroductionService {
     private final EditSelfIntroductionRepository editSelfIntroductionRepository;
     private final EditSelfIntroductionDetailsRepository editSelfIntroductionDetailsRepository;
     private final ChatGPTService chatGPTService;
+    private final MemberService memberService;
 
     @Autowired
     public EditSelfIntroductionService(EditSelfIntroductionRepository editSelfIntroductionRepository,
                                        EditSelfIntroductionDetailsRepository editSelfIntroductionDetailsRepository,
-                                       ChatGPTService chatGPTService) {
+                                       ChatGPTService chatGPTService,
+                                       MemberService memberService) {
         this.editSelfIntroductionRepository = editSelfIntroductionRepository;
         this.editSelfIntroductionDetailsRepository = editSelfIntroductionDetailsRepository;
         this.chatGPTService = chatGPTService;
+        this.memberService = memberService;
     }
 
     public EditSelfIntroduction provideFeedbackAndSave(Member member, List<EditSelfIntroductionDetails> details) {
@@ -103,5 +106,26 @@ public class EditSelfIntroductionService {
     //특정 첨삭된 자소서 삭제
     public void deleteSelfIntroductionById(Long id) {
         editSelfIntroductionRepository.deleteById(id);
+    }
+
+    //특정 자소서 저장
+    public void saveSelectedSelfIntroduction(Long selfIntroductionId, String username) {
+        // 현재 로그인된 사용자 가져오기
+        Member member = memberService.getMemberByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("해당 멤버를 찾을 수 없습니다."));
+
+        // 현재 save 값이 true인 자소서 false로 변경
+        editSelfIntroductionRepository.findByMemberAndSaveTrue(member)
+                .ifPresent(existingIntro -> {
+                    existingIntro.setSave(false);
+                    editSelfIntroductionRepository.save(existingIntro);
+                });
+
+        // 선택된 자소서의 save 값을 true로 변경
+        EditSelfIntroduction selectedIntro = editSelfIntroductionRepository.findById(selfIntroductionId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 자기소개서를 찾을 수 없습니다."));
+
+        selectedIntro.setSave(true);
+        editSelfIntroductionRepository.save(selectedIntro);
     }
 }

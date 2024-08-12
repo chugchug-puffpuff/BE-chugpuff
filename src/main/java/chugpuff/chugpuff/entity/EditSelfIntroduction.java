@@ -34,4 +34,7 @@ public class EditSelfIntroduction {
 
     @OneToMany(mappedBy = "editSelfIntroduction", cascade = CascadeType.ALL)
     private List<EditSelfIntroductionDetails> details;
+
+    private boolean save;
+
 }
