@@ -53,7 +53,6 @@ public class EditSelfIntroductionController {
         return editSelfIntroductionService.getSelfIntroductionsByMember(member);
     }
 
-
     //특정 첨삭된 자기소개서 조회
     @GetMapping("/{id}")
     public ResponseEntity<EditSelfIntroduction> getSelfIntroductionById(@PathVariable Long id) {
@@ -68,6 +67,5 @@ public class EditSelfIntroductionController {
         editSelfIntroductionService.deleteSelfIntroductionById(id);
         return ResponseEntity.noContent().build();
     }
-
 }
 

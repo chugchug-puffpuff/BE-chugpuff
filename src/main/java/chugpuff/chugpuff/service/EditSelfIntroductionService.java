@@ -104,6 +104,4 @@ public class EditSelfIntroductionService {
     public void deleteSelfIntroductionById(Long id) {
         editSelfIntroductionRepository.deleteById(id);
     }
-
-
 }
