@@ -47,9 +47,6 @@ public class EditSelfIntroductionService {
             details = new ArrayList<>();
         }
 
-        // 디버깅: 전달된 details 리스트의 내용을 로그로 출력
-        log.info("Received details: {}", details);
-
         // EditSelfIntroduction 객체 생성
         EditSelfIntroduction editSelfIntroduction = EditSelfIntroduction.builder()
                 .member(member)
@@ -60,7 +57,6 @@ public class EditSelfIntroductionService {
         EditSelfIntroduction savedSelfIntroduction = editSelfIntroductionRepository.save(editSelfIntroduction);
 
         for (EditSelfIntroductionDetails detail : details) {
-            log.info("Before saving: Question: {}, Answer: {}", detail.getES_question(), detail.getES_answer());
 
             if (detail.getES_question() == null) {
                 detail.setES_question("");
@@ -73,8 +69,6 @@ public class EditSelfIntroductionService {
             detail.setMember(member);
 
             editSelfIntroductionDetailsRepository.save(detail);
-
-            log.info("Saved detail: {}", detail);
         }
 
         // GPT 호출 및 피드백 처리
