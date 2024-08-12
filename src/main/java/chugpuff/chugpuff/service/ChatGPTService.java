@@ -80,7 +80,7 @@ public class ChatGPTService {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         StringBuilder promptBuilder = new StringBuilder();
-        promptBuilder.append("다음은 자기소개서 질문과 답변입니다. 맞춤법 검사 및 대체 단어 추천, 질문 의도와 답변 방향성 등 각 문항과 답변에 대한 피드백을 \"## 답변1 피드백: \"이런식으로 말하고 피드백 주고, 피드백을 참고하여 \"첨삭된 자기소개서 : \"이라 말하고 전체적으로 수정된 자기소개서 보내주세요.\n");
+        promptBuilder.append("다음은 자기소개서 질문과 답변입니다. 맞춤법 검사 및 대체 단어 추천, 질문 의도와 답변 방향성 등 각 문항과 답변에 대한 피드백을 \"## 답변1 피드백: \"이런식으로 말하고 피드백 주고, 피드백을 참고하여 \"## 첨삭된 자기소개서 : \"이라 말하고 피드백을 참고하여 수정된 자기소개서 전체를 보내주세요. 즉, 자기소개서 문항과 답변은 그대로 나오되, 답변만 수정된 내용으로 보내주세요.\n");
 
         for (int i = 0; i < details.size(); i++) {
             String question = details.get(i).getES_question();
