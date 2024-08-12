@@ -87,7 +87,6 @@ public class EditSelfIntroductionService {
     public List<EditSelfIntroduction> getSelfIntroductionsByMember(Member member) {
         log.info("특정 멤버의 자기소개서 조회 시작: {}", member.getName());
         List<EditSelfIntroduction> introductions = editSelfIntroductionRepository.findByMember(member);
-        log.info("특정 멤버의 자기소개서 조회 완료: {}", introductions);
         return introductions;
     }
 
