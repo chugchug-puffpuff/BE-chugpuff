@@ -1,6 +1,7 @@
 package chugpuff.chugpuff.entity;
 
 import chugpuff.chugpuff.domain.Member;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,6 +23,7 @@ public class EditSelfIntroductionDetails {
 
     @ManyToOne
     @JoinColumn(name = "eS_no", nullable = false)
+    @JsonIgnore
     private EditSelfIntroduction editSelfIntroduction;
 
     @JsonProperty("eS_question")
@@ -34,5 +36,6 @@ public class EditSelfIntroductionDetails {
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private Member member;
 }
