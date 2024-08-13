@@ -49,19 +49,19 @@ public class AIInterviewService {
     private String initializeInterviewSession(AIInterview aiInterview) {
         String chatPrompt;
         if ("인성 면접".equals(aiInterview.getInterviewType())) {
-            chatPrompt = "인성 면접을 시작합니다. 각 요구사항에 맞게 면접을 진행해주세요. 1. 질문과 피드백만 해주세요. 2. 면접의 주제는 '인성면접' 입니다. 3. 한글로 해주세요.";
+            chatPrompt = "인성 면접을 시작합니다. 각 요구사항에 맞게 면접을 진행해주세요. 1. 질문과 피드백만 해주세요. 2. 면접의 주제는 '인성면접' 입니다. 3. 한글로 해주세요. 4. 존댓말로 해주세요.";
         } else if ("직무 면접".equals(aiInterview.getInterviewType())) {
             String job = aiInterview.getMember().getJob();
             String jobKeyword = aiInterview.getMember().getJobKeyword();
-            chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 직무 면접을 시작합니다. 각 요구사항에 맞게 면접을 진행해주세요. 1. 질문과 피드백만 해주세요. 2. 면접의 주제는 " + job + " 직무의 " + jobKeyword + "입니다. 3. 한글로 해주세요.";
+            chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 직무 면접을 시작합니다. 각 요구사항에 맞게 면접을 진행해주세요. 1. 질문과 피드백만 해주세요. 2. 면접의 주제는 " + job + " 직무의 " + jobKeyword + "입니다. 3. 한글로 해주세요. 4. 존댓말로 해주세요.";
         } else {
             throw new RuntimeException("Invalid interview type");
         }
 
         if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 4. 질문은 하나씩만 합니다. 5. 사용자가 질문에 대답을 하면, 즉시 피드백을 제공하고 다음 질문을 해주세요.";
+            chatPrompt += " 4. 질문은 하나씩만 합니다. 5. 사용자가 질문에 대답을 하면, 즉시 피드백을 제공하고 다음 질문을 해주세요. 존댓말로 해주세요.";
         } else if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 4. 질문은 하나씩만 합니다. 5. 사용자가 질문에 대답을 하면, 다음 질문을 해주세요. 6. 면접이 끝난 후 전체적인 피드백을 제공해주세요.";
+            chatPrompt += " 4. 질문은 하나씩만 합니다. 5. 사용자가 질문에 대답을 하면, 다음 질문을 해주세요. 6. 면접이 끝난 후 전체적인 피드백을 제공해주세요. 존댓말로 해주세요.";
         }
 
         System.out.println("Sending to ChatGPT: " + chatPrompt);
@@ -137,7 +137,7 @@ public class AIInterviewService {
                     "당신은 지금 %s 직무 면접을 진행 중입니다. 면접의 주제는 '%s 직무의 %s'입니다. "
                             + "이전 질문은: \"%s\" "
                             + "지원자의 대답은: \"%s\" "
-                            + "이 정보를 바탕으로, 주제에 맞는 다음 질문을 '질문: '으로 시작하여 생성해 주세요. 주제에서 벗어나지 마세요.",
+                            + "주제에 맞는 다음 질문을 '질문: '으로 시작하여 생성해 주세요. 주제에서 벗어나지 마세요. 존댓말로 해주세요.",
                     aiInterview.getMember().getJob(),
                     aiInterview.getMember().getJob(),
                     aiInterview.getMember().getJobKeyword(),
@@ -149,7 +149,7 @@ public class AIInterviewService {
                     "당신은 지금 인성 면접을 진행 중입니다. 면접의 주제는 '인성면접' 입니다. "
                             + "이전 질문은: \"%s\" "
                             + "지원자의 대답은: \"%s\" "
-                            + "이 정보를 바탕으로, 주제에 맞는 다음 질문을 '질문: '으로 시작하여 생성해 주세요. 주제에서 벗어나지 마세요.",
+                            + "주제에 맞는 다음 질문을 '질문: '으로 시작하여 생성해 주세요. 주제에서 벗어나지 마세요. 존댓말로 해주세요.",
                     lastQuestion,
                     lastResponse
             );
@@ -162,20 +162,21 @@ public class AIInterviewService {
 
     // ChatGPT로부터 피드백 생성
     public String getChatGPTFeedback(String userResponse, AIInterview aiInterview) {
-        String chatPrompt = "다음 응답에 대해 '피드백: '으로 시작하는 피드백을 제공해주세요: " + userResponse;
+        String question = currentQuestion;
+        String chatPrompt = "다음 응답에 대해 '피드백: '으로 시작하는 피드백을 제공해주세요: " + userResponse + question + "라는 질문에 대한 답변입니다.";
 
         if ("직무 면접".equals(aiInterview.getInterviewType())) {
             chatPrompt += String.format(
-                    " 이 피드백은 %s 직무 면접에 대한 피드백을 주어야하며, 주제는 '%s 직무의 %s'입니다. 면접의 질문에 대한 사용자의 답변에 대해 피드백을 제공해주세요.",
+                    " 이 피드백은 %s 직무 면접에 대한 피드백을 주어야하며, 주제는 '%s 직무의 %s'입니다. 면접의 질문에 대한 사용자의 답변에 대해 피드백을 존댓말로 제공해주세요. 200자 내로 제공해주세요.",
                     aiInterview.getMember().getJob(),
                     aiInterview.getMember().getJob(),
                     aiInterview.getMember().getJobKeyword()
             );
         } else if ("인성 면접".equals(aiInterview.getInterviewType())) {
-            chatPrompt += " 이 피드백은 인성 면접에 대한 피드백을 주어야합니다. 면접의 질문에 대한 사용자의 답변에 대해 피드백을 제공해주세요.";
+            chatPrompt += " 이 피드백은 인성 면접에 대한 피드백을 주어야합니다. 면접의 질문에 대한 사용자의 답변에 대해 피드백을 존댓말로 제공해주세요.";
         }
 
-        System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
+        System.out.println("Sending to ChatGPT: " + chatPrompt);
         String feedback = externalAPIService.callChatGPT(chatPrompt);
 
         String ttsFeedback = externalAPIService.callTTS(feedback);

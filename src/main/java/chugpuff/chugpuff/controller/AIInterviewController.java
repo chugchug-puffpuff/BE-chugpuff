@@ -64,11 +64,9 @@ public class AIInterviewController {
             throw new RuntimeException("Interview not found");
         }
 
-        // 사용자 정보를 출력하여 디버깅
         System.out.println("Logged in user: " + userDetails.getUsername());
         System.out.println("Interview owner user_id: " + aiInterview.getMember().getUser_id());
 
-        // 여기서는 검증을 하지 않지만 로그를 남깁니다.
         aiInterviewService.startInterview(AIInterviewNo);
     }
 
@@ -128,7 +126,7 @@ public class AIInterviewController {
             return ResponseEntity.badRequest().body("Interview not found");
         }
 
-        aiInterviewService.stopAudioCapture(); // 음성 캡처를 중지
+        aiInterviewService.stopAudioCapture();
 
         return ResponseEntity.ok("Recording stopped and saved.");
     }
@@ -141,7 +139,6 @@ public class AIInterviewController {
             return ResponseEntity.badRequest().body("Interview not found");
         }
 
-        // 업로드된 파일을 서버의 임시 파일로 저장
         String audioFilePath = "captured_audio_" + AIInterviewNo + ".wav";
         File file = new File(audioFilePath);
         try (OutputStream os = new FileOutputStream(file)) {
@@ -150,17 +147,14 @@ public class AIInterviewController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to save audio file");
         }
 
-        // STT API를 호출하여 텍스트로 변환
         String sttText = externalAPIService.callSTT(audioFilePath);
 
         String feedback = aiInterviewService.getChatGPTFeedback(sttText, aiInterview);
 
-        // 필요한 경우 즉시 피드백을 저장합니다.
         if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
             aiInterviewService.saveImmediateFeedback(aiInterview, aiInterviewService.getCurrentQuestion(), sttText, feedback);
         }
 
-        // 다음 질문 생성 및 재생
         String nextQuestion = aiInterviewService.getChatGPTQuestion(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
         aiInterviewService.handleInterviewProcess(aiInterview, nextQuestion);
 
