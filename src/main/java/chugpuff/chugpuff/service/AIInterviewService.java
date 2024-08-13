@@ -38,6 +38,8 @@ public class AIInterviewService {
 
     private boolean interviewInProgress = false;
 
+    private String currentQuestion;
+
     // AI 면접 저장
     public AIInterview saveInterview(AIInterview aiInterview) {
         return aiInterviewRepository.save(aiInterview);
@@ -47,26 +49,24 @@ public class AIInterviewService {
     private String initializeInterviewSession(AIInterview aiInterview) {
         String chatPrompt;
         if ("인성 면접".equals(aiInterview.getInterviewType())) {
-            chatPrompt = "인성 면접을 시작합니다. 면접의 주제는 '인성면접' 입니다. 한글로 해주세요.";
+            chatPrompt = "인성 면접을 시작합니다. 각 요구사항에 맞게 면접을 진행해주세요. 1. 질문과 피드백만 해주세요. 2. 면접의 주제는 '인성면접' 입니다. 3. 한글로 해주세요.";
         } else if ("직무 면접".equals(aiInterview.getInterviewType())) {
             String job = aiInterview.getMember().getJob();
             String jobKeyword = aiInterview.getMember().getJobKeyword();
-            chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 직무 면접을 시작합니다. " + "면접의 주제는 " + job + " 직무의 " + jobKeyword + "입니다. 한글로 해주세요.";
+            chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 직무 면접을 시작합니다. 각 요구사항에 맞게 면접을 진행해주세요. 1. 질문과 피드백만 해주세요. 2. 면접의 주제는 " + job + " 직무의 " + jobKeyword + "입니다. 3. 한글로 해주세요.";
         } else {
             throw new RuntimeException("Invalid interview type");
         }
 
-        // 피드백 방식을 ChatGPT 프롬프트에 포함
         if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 질문은 하나씩만 하고 질문에 대답한 후 즉시 피드백을 제공하고 다음 질문을 해주세요. 질문을 할 때는 \\\"질문 : \\\"이라 말하고 질문해주세요. 바로 질문해주세요.";
+            chatPrompt += " 4. 질문은 하나씩만 합니다. 5. 사용자가 질문에 대답을 하면, 즉시 피드백을 제공하고 다음 질문을 해주세요.";
         } else if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
-            chatPrompt += " 질문은 하나씩만 하고 대답을 하면 다음 질문을 해주세요. 면접이 끝난 후 전체적인 피드백을 제공해주세요. 질문을 할 때는 \\\"질문 : \\\"이라 말하고 질문해주세요. 바로 질문해주세요.";
+            chatPrompt += " 4. 질문은 하나씩만 합니다. 5. 사용자가 질문에 대답을 하면, 다음 질문을 해주세요. 6. 면접이 끝난 후 전체적인 피드백을 제공해주세요.";
         }
 
-        System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
+        System.out.println("Sending to ChatGPT: " + chatPrompt);
         String firstResponse = externalAPIService.callChatGPT(chatPrompt);
 
-        // 응답에서 질문만 추출
         return extractQuestionOrFeedbackFromResponse(firstResponse, false);
     }
 
@@ -78,11 +78,9 @@ public class AIInterviewService {
             if (isFeedback) {
                 return response.substring("피드백: ".length()).trim();
             } else {
-                // 질문을 기대했지만 피드백이 반환된 경우에 대한 처리
                 throw new RuntimeException("Expected a question, but received feedback instead.");
             }
         } else {
-            // "질문: " 또는 "피드백: "으로 시작하지 않는 경우, 유연하게 처리하기 위해 예외를 발생시키지 않고 직접 반환
             return response.trim();
         }
     }
@@ -93,79 +91,36 @@ public class AIInterviewService {
         AIInterview aiInterview = aiInterviewRepository.findById(AIInterviewNo)
                 .orElseThrow(() -> new RuntimeException("Interview not found"));
 
-        // 이전 응답 데이터 초기화
-        clearPreviousResponses(aiInterview);
-
-        // 인터뷰 세션 초기화 및 첫 번째 질문 생성
-        String firstQuestion = initializeInterviewSession(aiInterview);
+        currentQuestion = initializeInterviewSession(aiInterview);
         interviewInProgress = true;
 
-        timerService.startTimer(30 * 60 * 1000, () -> endInterview(aiInterview));
-
-        // 첫 번째 질문 처리
-        String lastResponse = "";
-        lastResponse = handleInterviewProcess(aiInterview, firstQuestion, lastResponse);
-
-        while (interviewInProgress) {
-            String nextQuestion = getChatGPTQuestion(aiInterview, firstQuestion, lastResponse);
-            lastResponse = handleInterviewProcess(aiInterview, nextQuestion, lastResponse);
-            firstQuestion = nextQuestion;
-        }
-
-        if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
-            handleFullFeedback(aiInterview);
-        }
-
-        endInterview(aiInterview);
+        handleInterviewProcess(aiInterview, currentQuestion);
     }
 
-    // 이전 응답 데이터 초기화 메서드
-    private void clearPreviousResponses(AIInterview aiInterview) {
-        List<AIInterviewIF> previousResponses = aiInterviewIFRepository.findByAiInterview(aiInterview);
-        for (AIInterviewIF response : previousResponses) {
-            aiInterviewIFRepository.delete(response);
-        }
-        aiInterview.setImmediateFeedbacks(null);
-        aiInterview.setOverallFeedback(null);
-        aiInterviewRepository.save(aiInterview); // 변경 사항 저장
+    // 현재 질문을 반환하는 메서드
+    public String getCurrentQuestion() {
+        return currentQuestion;
     }
 
     // 인터뷰 진행 처리 메서드
-    private String handleInterviewProcess(AIInterview aiInterview, String question, String lastResponse) {
+    public void handleInterviewProcess(AIInterview aiInterview, String question) {
         try {
-            System.out.println("Generated Question: " + question); // 질문 로그 출력
+            stopAudioCapture();
+
+            currentQuestion = question;
+            System.out.println("Generated Question: " + question);
             String ttsQuestion = externalAPIService.callTTS(question);
             playAudio(ttsQuestion);
 
-            String userAudioResponse = captureUserAudio();
-            String sttResponse = externalAPIService.callSTT(userAudioResponse);
-
-            if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-                // AIInterview 객체를 함께 전달하여 getChatGPTFeedback 호출
-                String immediateFeedback = getChatGPTFeedback(sttResponse, aiInterview);
-                System.out.println("Generated Feedback: " + immediateFeedback); // 피드백 로그 출력
-                String ttsFeedback = externalAPIService.callTTS(immediateFeedback);
-                playAudio(ttsFeedback);
-
-                // 질문, 답변, 피드백을 한 번에 저장
-                saveImmediateFeedback(aiInterview, question, sttResponse, immediateFeedback);
-            } else {
-                // 전체 피드백의 경우 피드백 없이 저장 (이 경우는 한 번만 저장될 것입니다)
-                saveUserResponse(aiInterview, question, sttResponse);
-            }
-
-            return sttResponse; // 마지막 응답 반환
-
+            captureUserAudio();
         } catch (Exception e) {
             e.printStackTrace();
-            stopAudioCapture(); // 음성 캡처 중지
             interviewInProgress = false;
-            return null;
         }
     }
 
     // ChatGPT로부터 질문 생성
-    private String getChatGPTQuestion(AIInterview aiInterview, String lastQuestion, String lastResponse) {
+    public String getChatGPTQuestion(AIInterview aiInterview, String lastQuestion, String lastResponse) {
         String chatPrompt;
 
         if ("직무 면접".equals(aiInterview.getInterviewType())) {
@@ -202,17 +157,22 @@ public class AIInterviewService {
 
         if ("직무 면접".equals(aiInterview.getInterviewType())) {
             chatPrompt += String.format(
-                    " 이 피드백은 %s 직무 면접을 진행 중이며, 주제는 '%s 직무의 %s'입니다.",
+                    " 이 피드백은 %s 직무 면접에 대한 피드백을 주어야하며, 주제는 '%s 직무의 %s'입니다. 면접의 질문에 대한 사용자의 답변에 대해 피드백을 제공해주세요.",
                     aiInterview.getMember().getJob(),
                     aiInterview.getMember().getJob(),
                     aiInterview.getMember().getJobKeyword()
             );
         } else if ("인성 면접".equals(aiInterview.getInterviewType())) {
-            chatPrompt += " 이 피드백은 인성 면접 중입니다.";
+            chatPrompt += " 이 피드백은 인성 면접에 대한 피드백을 주어야합니다. 면접의 질문에 대한 사용자의 답변에 대해 피드백을 제공해주세요.";
         }
 
         System.out.println("Sending to ChatGPT: " + chatPrompt); // ChatGPT 프롬프트 로그 출력
-        return externalAPIService.callChatGPT(chatPrompt);
+        String feedback = externalAPIService.callChatGPT(chatPrompt);
+
+        String ttsFeedback = externalAPIService.callTTS(feedback);
+        playAudio(ttsFeedback);
+
+        return feedback;
     }
 
     // 즉시 피드백 저장
@@ -245,8 +205,7 @@ public class AIInterviewService {
             answerText.append(response.getI_answer()).append(" ");
         }
 
-        // AIInterview 객체를 함께 전달하여 getChatGPTFeedback 호출
-        String fullFeedback = getChatGPTFeedback(questionText.toString() + answerText.toString(), aiInterview); // AIInterview 객체 추가
+        String fullFeedback = getChatGPTFeedback(questionText.toString() + answerText.toString(), aiInterview);
         String ttsFeedback = externalAPIService.callTTS(fullFeedback);
         playAudio(ttsFeedback);
 
@@ -269,7 +228,7 @@ public class AIInterviewService {
     }
 
     // 음성 재생
-    private void playAudio(String audioUrl) {
+    public void playAudio(String audioUrl) {
         System.out.println("Playing audio from URL: " + audioUrl);
         try (FileInputStream fileInputStream = new FileInputStream(audioUrl)) {
             Player player = new Player(fileInputStream);
@@ -287,88 +246,35 @@ public class AIInterviewService {
     }
 
     // 사용자 음성 응답 캡처
-    private String captureUserAudio() {
-        String audioFilePath = "captured_audio.wav";
-        File audioFile = new File(audioFilePath);
+    private void captureUserAudio() {
+        new Thread(() -> {
+            String audioFilePath = "captured_audio.wav";
+            File audioFile = new File(audioFilePath);
 
-        try {
-            // 샘플링 속도를 44100 Hz로 설정
-            AudioFormat format = new AudioFormat(44100, 16, 1, true, true);
-            DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+            try {
+                AudioFormat format = new AudioFormat(44100, 16, 1, true, true);
+                DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
 
-            // 마이크 초기화
-            microphone = (TargetDataLine) AudioSystem.getLine(info);
-            microphone.open(format);
-            microphone.start();
+                microphone = (TargetDataLine) AudioSystem.getLine(info);
+                microphone.open(format);
+                microphone.start();
 
-            System.out.println("Microphone opened and audio capture started...");
+                System.out.println("Microphone opened and audio capture started...");
 
-            // AudioInputStream 생성
-            AudioInputStream audioStream = new AudioInputStream(microphone);
+                AudioInputStream audioStream = new AudioInputStream(microphone);
 
-            // 파일에 음성 데이터를 쓰기 위한 준비
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            byte[] buffer = new byte[4096];
-            int silenceThreshold = 1000; // 침묵 시간 기준 (밀리초)
-            long silenceDuration = 0;
-            boolean isSilent;
-            boolean recording = true;
-
-            while (recording) {
-                int bytesRead = audioStream.read(buffer, 0, buffer.length);
-
-                if (bytesRead == -1) {
-                    break;
-                }
-
-                isSilent = true;
-                for (int i = 0; i < bytesRead; i++) {
-                    if (Math.abs(buffer[i]) > 10) { // 작은 값도 무시하지 않도록 수정
-                        isSilent = false;
-                        silenceDuration = 0;
-                        break;
-                    }
-                }
-
-                if (isSilent) {
-                    silenceDuration += (bytesRead / format.getFrameSize()) / (float) format.getFrameRate() * 1000;
-                    System.out.println("Silence duration: " + silenceDuration);
-                    if (silenceDuration >= silenceThreshold) {
-                        System.out.println("Silence detected. Stopping audio capture.");
-                        recording = false;
-                    }
-                }
-
-                byteArrayOutputStream.write(buffer, 0, bytesRead);
-            }
-
-            // ByteArrayOutputStream을 ByteArrayInputStream으로 변환
-            byte[] audioData = byteArrayOutputStream.toByteArray();
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(audioData);
-
-            // 새 AudioInputStream을 생성하여 파일로 저장
-            try (AudioInputStream finalAudioStream = new AudioInputStream(byteArrayInputStream, format, audioData.length / format.getFrameSize())) {
-                AudioSystem.write(finalAudioStream, AudioFileFormat.Type.WAVE, audioFile);
+                AudioSystem.write(audioStream, AudioFileFormat.Type.WAVE, audioFile);
                 System.out.println("Audio data written to file: " + audioFilePath);
+
+            } catch (LineUnavailableException | IOException e) {
+                System.err.println("Failed to capture audio: " + e.getMessage());
+                stopAudioCapture();
             }
-
-        } catch (LineUnavailableException e) {
-            System.err.println("Microphone line is unavailable: " + e.getMessage());
-            stopAudioCapture();
-            throw new RuntimeException("Failed to open microphone line", e);
-        } catch (IOException e) {
-            System.err.println("Failed to write audio data to file: " + e.getMessage());
-            stopAudioCapture();
-            throw new RuntimeException("Failed to capture audio", e);
-        } finally {
-            stopAudioCapture();
-        }
-
-        return audioFilePath;
+        }).start();
     }
 
     // 음성 캡처 중지
-    private void stopAudioCapture() {
+    public void stopAudioCapture() {
         if (microphone != null && microphone.isOpen()) {
             microphone.stop();
             microphone.close();
@@ -384,7 +290,7 @@ public class AIInterviewService {
     // 인터뷰 종료 처리
     private void endInterview(AIInterview aiInterview) {
         interviewInProgress = false;
-        stopAudioCapture(); // 인터뷰 종료 시 음성 캡처 중지
+        stopAudioCapture();
         System.out.println("Interview session ended.");
         // 인터뷰 종료 후 추가 처리 로직 (예: 상태 업데이트, 로그 기록 등)
     }
