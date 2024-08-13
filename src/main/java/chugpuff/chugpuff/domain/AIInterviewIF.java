@@ -19,6 +19,6 @@ public class AIInterviewIF {
     private String i_question;
     private String i_answer;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "LONGTEXT")
     private String i_feedback;
 }
