@@ -91,6 +91,11 @@ public class AIInterviewService {
         AIInterview aiInterview = aiInterviewRepository.findById(AIInterviewNo)
                 .orElseThrow(() -> new RuntimeException("Interview not found"));
 
+        if (interviewInProgress) {
+            System.out.println("Interview is already in progress or finished.");
+            return;
+        }
+
         currentQuestion = initializeInterviewSession(aiInterview);
         interviewInProgress = true;
 
@@ -293,9 +298,12 @@ public class AIInterviewService {
 
     // 인터뷰 종료 처리
     private void endInterview(AIInterview aiInterview) {
+        if (!interviewInProgress) {
+            return;
+        }
+
         interviewInProgress = false;
         stopAudioCapture();
         System.out.println("Interview session ended.");
-        // 인터뷰 종료 후 추가 처리 로직 (예: 상태 업데이트, 로그 기록 등)
     }
 }

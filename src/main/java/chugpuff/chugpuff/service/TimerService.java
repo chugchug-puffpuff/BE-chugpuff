@@ -21,7 +21,6 @@ public class TimerService {
             while (System.currentTimeMillis() < endTime && !isStopped) {
                 if (!isPaused) {
                     remainingTime = endTime - System.currentTimeMillis();
-                    // 타이머 상태 업데이트 (필요 시 UI 업데이트 로직 추가)
                     System.out.println("Remaining time: " + remainingTime / 1000 + " seconds");
                 }
                 try {
@@ -31,7 +30,10 @@ public class TimerService {
                     break;
                 }
             }
-            if (!isStopped) onFinish.run();
+            if (!isStopped) {
+                System.out.println("Timer finished, calling onFinish");
+                onFinish.run();
+            }
         });
         timerThread.start();
     }
