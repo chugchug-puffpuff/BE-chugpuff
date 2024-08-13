@@ -94,6 +94,10 @@ public class AIInterviewService {
         currentQuestion = initializeInterviewSession(aiInterview);
         interviewInProgress = true;
 
+        timerService.startTimer(30 * 60 * 1000, () -> {
+            endInterview(aiInterview);
+        });
+
         handleInterviewProcess(aiInterview, currentQuestion);
     }
 
