@@ -50,6 +50,9 @@ public class JobPostingService {
     private ScrapRepository scrapRepository;
 
     @Autowired
+    private CalenderService calenderService;
+
+    @Autowired
     private JobPostingCommentRepository jobPostingCommentRepository;
 
     //공고 조회 및 필터링
@@ -113,7 +116,8 @@ public class JobPostingService {
     public String getJobDetails(String jobId) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
                 .queryParam("access-key", accessKey)
-                .queryParam("id", jobId);
+                .queryParam("id", jobId)
+                .queryParam("fields", "expiration-date"); //캘린더 마감기한 제공 부분에서 필요
 
         URI uri = builder.build(true).toUri();
 
@@ -164,13 +168,20 @@ public class JobPostingService {
 
         if (scrapOptional.isPresent()) {
             // 이미 스크랩한 공고인 경우, 스크랩을 취소 (삭제)
-            scrapRepository.delete(scrapOptional.get());
+            Scrap scrap = scrapOptional.get();
+            scrapRepository.delete(scrap);
+
+            // 관련 캘린더 항목도 삭제
+            calenderService.deleteCalenderByScrap(scrap);
         } else {
             // 스크랩하지 않은 공고인 경우, 스크랩 추가
             Scrap scrap = new Scrap();
             scrap.setMember(member);
             scrap.setJobId(jobId);
             scrapRepository.save(scrap);
+
+            // 관련 캘린더 항목도 추가
+            calenderService.scrapExpirationDateToCalender(scrap);
         }
     }
 
