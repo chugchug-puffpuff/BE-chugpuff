@@ -40,6 +40,8 @@ public class AIInterviewService {
 
     private String currentQuestion;
 
+    private Player player;
+
     // AI 면접 저장
     public AIInterview saveInterview(AIInterview aiInterview) {
         return aiInterviewRepository.save(aiInterview);
@@ -92,8 +94,8 @@ public class AIInterviewService {
                 .orElseThrow(() -> new RuntimeException("Interview not found"));
 
         if (interviewInProgress) {
-            System.out.println("Interview is already in progress or finished.");
-            return;
+            System.out.println("Another interview is already in progress. Ending the previous interview.");
+            endInterview(aiInterview);
         }
 
         currentQuestion = initializeInterviewSession(aiInterview);
@@ -114,11 +116,20 @@ public class AIInterviewService {
     // 인터뷰 진행 처리 메서드
     public void handleInterviewProcess(AIInterview aiInterview, String question) {
         try {
+            if (!interviewInProgress) { // 인터뷰가 진행 중인지 확인
+                return; // 인터뷰가 종료된 경우 처리 중단
+            }
+
             stopAudioCapture();
 
             currentQuestion = question;
             System.out.println("Generated Question: " + question);
             String ttsQuestion = externalAPIService.callTTS(question);
+
+            if (!interviewInProgress) { // TTS 처리 후 다시 인터뷰가 진행 중인지 확인
+                return; // 인터뷰가 종료된 경우 처리 중단
+            }
+
             playAudio(ttsQuestion);
 
             captureUserAudio();
@@ -162,8 +173,12 @@ public class AIInterviewService {
 
     // ChatGPT로부터 피드백 생성
     public String getChatGPTFeedback(String userResponse, AIInterview aiInterview) {
+        if (!interviewInProgress) {
+            return null;
+        }
+
         String question = currentQuestion;
-        String chatPrompt = "다음 응답에 대해 '피드백: '으로 시작하는 피드백을 제공해주세요: " + userResponse + question + "라는 질문에 대한 답변입니다.";
+        String chatPrompt = "다음 응답에 대해 '피드백: '으로 시작하는 피드백을 제공해주세요: " + userResponse + " " + question + "라는 질문에 대한 답변입니다.";
 
         if ("직무 면접".equals(aiInterview.getInterviewType())) {
             chatPrompt += String.format(
@@ -179,6 +194,10 @@ public class AIInterviewService {
         System.out.println("Sending to ChatGPT: " + chatPrompt);
         String feedback = externalAPIService.callChatGPT(chatPrompt);
 
+        if (!interviewInProgress) {
+            return null;
+        }
+
         String ttsFeedback = externalAPIService.callTTS(feedback);
         playAudio(ttsFeedback);
 
@@ -187,6 +206,10 @@ public class AIInterviewService {
 
     // 즉시 피드백 저장
     public void saveImmediateFeedback(AIInterview aiInterview, String question, String response, String feedback) {
+        if (!interviewInProgress) {
+            System.out.println("Interview has ended, immediate feedback is not saved.");
+            return;
+        }
         AIInterviewIF aiInterviewIF = new AIInterviewIF();
         aiInterviewIF.setAiInterview(aiInterview);
         aiInterviewIF.setI_question(question);
@@ -197,6 +220,10 @@ public class AIInterviewService {
 
     // 사용자 응답 저장
     public void saveUserResponse(AIInterview aiInterview, String question, String response) {
+        if (!interviewInProgress) {
+            System.out.println("Interview has ended, user response is not saved.");
+            return;
+        }
         AIInterviewIF aiInterviewIF = new AIInterviewIF();
         aiInterviewIF.setAiInterview(aiInterview);
         aiInterviewIF.setI_question(question);
@@ -224,6 +251,10 @@ public class AIInterviewService {
 
     // 전체 피드백 저장
     public void saveFullFeedback(AIInterview aiInterview, String questions, String answers, String feedback) {
+        if (!interviewInProgress) {
+            System.out.println("Interview has ended, full feedback is not saved.");
+            return;
+        }
         AIInterviewFF aiInterviewFF = new AIInterviewFF();
         aiInterviewFF.setAiInterview(aiInterview);
         aiInterviewFF.setF_question(questions);
@@ -239,24 +270,28 @@ public class AIInterviewService {
 
     // 음성 재생
     public void playAudio(String audioUrl) {
+        if (!interviewInProgress) {
+            return;
+        }
+
         System.out.println("Playing audio from URL: " + audioUrl);
         try (FileInputStream fileInputStream = new FileInputStream(audioUrl)) {
-            Player player = new Player(fileInputStream);
+            stopCurrentAudio(); // 현재 재생 중인 오디오가 있다면 중지
+            player = new Player(fileInputStream);
             player.play();
         } catch (FileNotFoundException e) {
-            stopAudioCapture();
             throw new RuntimeException("File not found: " + audioUrl, e);
-        } catch (JavaLayerException e) {
-            stopAudioCapture();
+        } catch (JavaLayerException | IOException e) {
             throw new RuntimeException("Failed to play audio", e);
-        } catch (IOException e) {
-            stopAudioCapture();
-            throw new RuntimeException("IO exception while playing audio", e);
         }
     }
 
     // 사용자 음성 응답 캡처
     private void captureUserAudio() {
+        if (!interviewInProgress) {
+            return;
+        }
+
         new Thread(() -> {
             String audioFilePath = "captured_audio.wav";
             File audioFile = new File(audioFilePath);
@@ -272,7 +307,6 @@ public class AIInterviewService {
                 System.out.println("Microphone opened and audio capture started...");
 
                 AudioInputStream audioStream = new AudioInputStream(microphone);
-
                 AudioSystem.write(audioStream, AudioFileFormat.Type.WAVE, audioFile);
                 System.out.println("Audio data written to file: " + audioFilePath);
 
@@ -292,19 +326,33 @@ public class AIInterviewService {
         }
     }
 
+    // 현재 재생 중인 음성 중지 로직
+    public void stopCurrentAudio() {
+        if (player != null) {
+            player.close();
+            player = null;
+            System.out.println("Audio playback stopped.");
+        }
+    }
+
     // AI 면접 ID로 면접 조회
     public AIInterview getInterviewById(Long AIInterviewNo) {
         return aiInterviewRepository.findById(AIInterviewNo).orElse(null);
     }
 
     // 인터뷰 종료 처리
-    private void endInterview(AIInterview aiInterview) {
+    public void endInterview(AIInterview aiInterview) {
         if (!interviewInProgress) {
             return;
         }
 
         interviewInProgress = false;
-        stopAudioCapture();
-        System.out.println("Interview session ended.");
+        stopAudioCapture(); // 음성 캡처 중지
+        stopCurrentAudio(); // 현재 재생 중인 오디오 중지
+        timerService.stopTimer(); // 타이머 중지
+
+        System.out.println("Interview session ended without saving.");
+
+        currentQuestion = null; // 다음 질문을 막기 위해 currentQuestion도 초기화
     }
 }

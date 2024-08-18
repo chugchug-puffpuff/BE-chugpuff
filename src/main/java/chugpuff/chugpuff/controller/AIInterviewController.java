@@ -160,6 +160,17 @@ public class AIInterviewController {
 
         return ResponseEntity.ok(feedback);
     }
+
+    // AI 모의면접 종료
+    @PostMapping("/{AIInterviewNo}/end")
+    public void endInterview(@PathVariable Long AIInterviewNo) {
+        AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
+        if (aiInterview == null) {
+            throw new RuntimeException("Interview not found");
+        }
+
+        aiInterviewService.endInterview(aiInterview);
+    }
 }
 
 @Getter
