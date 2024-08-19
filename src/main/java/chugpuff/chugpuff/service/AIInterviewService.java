@@ -231,24 +231,6 @@ public class AIInterviewService {
         aiInterviewIFRepository.save(aiInterviewIF);
     }
 
-    // 전체 피드백 처리
-    private void handleFullFeedback(AIInterview aiInterview) {
-        List<AIInterviewIF> responses = aiInterviewIFRepository.findByAiInterview(aiInterview);
-        StringBuilder questionText = new StringBuilder();
-        StringBuilder answerText = new StringBuilder();
-
-        for (AIInterviewIF response : responses) {
-            questionText.append(response.getI_question()).append(" ");
-            answerText.append(response.getI_answer()).append(" ");
-        }
-
-        String fullFeedback = getChatGPTFeedback(questionText.toString() + answerText.toString(), aiInterview);
-        String ttsFeedback = externalAPIService.callTTS(fullFeedback);
-        playAudio(ttsFeedback);
-
-        saveFullFeedback(aiInterview, questionText.toString(), answerText.toString(), fullFeedback);
-    }
-
     // 전체 피드백 저장
     public void saveFullFeedback(AIInterview aiInterview, String questions, String answers, String feedback) {
         if (!interviewInProgress) {
@@ -259,8 +241,25 @@ public class AIInterviewService {
         aiInterviewFF.setAiInterview(aiInterview);
         aiInterviewFF.setF_question(questions);
         aiInterviewFF.setF_answer(answers);
-        aiInterviewFF.setF_feedback(feedback);
         aiInterviewFFRepository.save(aiInterviewFF);
+    }
+
+    // 전체 피드백 처리
+    private void handleFullFeedback(AIInterview aiInterview) {
+        List<AIInterviewFF> responses = aiInterviewFFRepository.findByAiInterviewFF(aiInterview);
+        StringBuilder questionText = new StringBuilder();
+        StringBuilder answerText = new StringBuilder();
+
+        for (AIInterviewFF response : responses) {
+            questionText.append(response.getF_question()).append(" ");
+            answerText.append(response.getF_answer()).append(" ");
+        }
+
+        String fullFeedback = getChatGPTFeedback(questionText.toString() + answerText.toString(), aiInterview);
+        String ttsFeedback = externalAPIService.callTTS(fullFeedback);
+        playAudio(ttsFeedback);
+
+        saveFullFeedback(aiInterview, questionText.toString(), answerText.toString(), fullFeedback);
     }
 
     // 인터뷰 진행 여부 확인

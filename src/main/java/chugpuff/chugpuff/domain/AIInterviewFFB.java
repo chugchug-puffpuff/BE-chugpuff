@@ -6,16 +6,16 @@ import lombok.*;
 @Entity
 @Getter
 @Setter
-public class AIInterviewFF {
+public class AIInterviewFFB {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long AIInterviewFFNo;
+    private Long AIInterviewFFBNo;
 
     @ManyToOne
     @JoinColumn(name = "AIInterviewNo")
     private AIInterview aiInterview;
 
-    private String f_question;
-    private String f_answer;
+    @Column(columnDefinition = "LONGTEXT")
+    private String f_feedback;
 }

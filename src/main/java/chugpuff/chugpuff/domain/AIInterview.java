@@ -25,8 +25,8 @@ public class AIInterview {
     @OneToMany(mappedBy = "aiInterview", cascade = CascadeType.ALL)
     private List<AIInterviewIF> immediateFeedbacks;
 
-    @OneToOne(mappedBy = "aiInterview", cascade = CascadeType.ALL)
-    private AIInterviewFF overallFeedback;
+    @OneToMany(mappedBy = "aiInterview", cascade = CascadeType.ALL)
+    private List<AIInterviewFF> overallFeedbacks;
 
     private LocalDateTime aiInterviewDate;
 
