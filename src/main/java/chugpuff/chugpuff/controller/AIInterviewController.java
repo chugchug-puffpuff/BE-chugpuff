@@ -149,11 +149,16 @@ public class AIInterviewController {
 
         String sttText = externalAPIService.callSTT(audioFilePath);
 
-        String feedback = aiInterviewService.getChatGPTFeedback(sttText, aiInterview);
-
-        if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-            aiInterviewService.saveImmediateFeedback(aiInterview, aiInterviewService.getCurrentQuestion(), sttText, feedback);
+        // 즉시 피드백이 아닌 경우 다음 질문만 생성
+        if (!"즉시 피드백".equals(aiInterview.getFeedbackType())) {
+            String nextQuestion = aiInterviewService.getChatGPTQuestion(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
+            aiInterviewService.handleInterviewProcess(aiInterview, nextQuestion);
+            return ResponseEntity.ok(nextQuestion);
         }
+
+        // 기존 즉시 피드백 로직
+        String feedback = aiInterviewService.getChatGPTFeedback(sttText, aiInterview);
+        aiInterviewService.saveImmediateFeedback(aiInterview, aiInterviewService.getCurrentQuestion(), sttText, feedback);
 
         String nextQuestion = aiInterviewService.getChatGPTQuestion(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
         aiInterviewService.handleInterviewProcess(aiInterview, nextQuestion);

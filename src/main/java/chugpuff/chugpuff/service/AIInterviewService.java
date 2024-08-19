@@ -2,7 +2,9 @@ package chugpuff.chugpuff.service;
 
 import chugpuff.chugpuff.domain.AIInterview;
 import chugpuff.chugpuff.domain.AIInterviewFF;
+import chugpuff.chugpuff.domain.AIInterviewFFB;
 import chugpuff.chugpuff.domain.AIInterviewIF;
+import chugpuff.chugpuff.repository.AIInterviewFFBRepository;
 import chugpuff.chugpuff.repository.AIInterviewRepository;
 import chugpuff.chugpuff.repository.AIInterviewFFRepository;
 import chugpuff.chugpuff.repository.AIInterviewIFRepository;
@@ -27,6 +29,9 @@ public class AIInterviewService {
 
     @Autowired
     private AIInterviewFFRepository aiInterviewFFRepository;
+
+    @Autowired
+    private AIInterviewFFBRepository aiInterviewFFBRepository;
 
     @Autowired
     private ExternalAPIService externalAPIService;
@@ -237,29 +242,39 @@ public class AIInterviewService {
             System.out.println("Interview has ended, full feedback is not saved.");
             return;
         }
+
+        // AIInterviewFF에 질문과 답변 저장
         AIInterviewFF aiInterviewFF = new AIInterviewFF();
         aiInterviewFF.setAiInterview(aiInterview);
         aiInterviewFF.setF_question(questions);
         aiInterviewFF.setF_answer(answers);
         aiInterviewFFRepository.save(aiInterviewFF);
+
+        // AIInterviewFFB에 피드백 저장
+        AIInterviewFFB aiInterviewFFB = new AIInterviewFFB();
+        aiInterviewFFB.setAiInterview(aiInterview);
+        aiInterviewFFB.setF_feedback(feedback);
+        aiInterviewFFBRepository.save(aiInterviewFFB);
     }
 
     // 전체 피드백 처리
     private void handleFullFeedback(AIInterview aiInterview) {
-        List<AIInterviewFF> responses = aiInterviewFFRepository.findByAiInterviewFF(aiInterview);
-        StringBuilder questionText = new StringBuilder();
-        StringBuilder answerText = new StringBuilder();
+        List<AIInterviewIF> responses = aiInterviewIFRepository.findByAiInterview(aiInterview);
+        StringBuilder allQuestions = new StringBuilder();
+        StringBuilder allResponses = new StringBuilder();
 
-        for (AIInterviewFF response : responses) {
-            questionText.append(response.getF_question()).append(" ");
-            answerText.append(response.getF_answer()).append(" ");
+        for (AIInterviewIF response : responses) {
+            allQuestions.append(response.getI_question()).append(" ");
+            allResponses.append(response.getI_answer()).append(" ");
         }
 
-        String fullFeedback = getChatGPTFeedback(questionText.toString() + answerText.toString(), aiInterview);
+        String fullFeedbackPrompt = "이 면접에서 다뤄진 모든 질문과 대답을 바탕으로 전체적인 피드백을 제공해주세요: " + allQuestions.toString() + allResponses.toString();
+        String fullFeedback = externalAPIService.callChatGPT(fullFeedbackPrompt);
+
         String ttsFeedback = externalAPIService.callTTS(fullFeedback);
         playAudio(ttsFeedback);
 
-        saveFullFeedback(aiInterview, questionText.toString(), answerText.toString(), fullFeedback);
+        saveFullFeedback(aiInterview, allQuestions.toString(), allResponses.toString(), fullFeedback);
     }
 
     // 인터뷰 진행 여부 확인
@@ -345,12 +360,18 @@ public class AIInterviewService {
             return;
         }
 
-        interviewInProgress = false;
+        // 전체 피드백 생성 요청
+        if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
+            handleFullFeedback(aiInterview);  // full feedback을 생성하고 저장
+        }
+
+        interviewInProgress = false;  // 이 위치로 이동하여 interviewInProgress를 나중에 false로 설정
+
         stopAudioCapture(); // 음성 캡처 중지
         stopCurrentAudio(); // 현재 재생 중인 오디오 중지
         timerService.stopTimer(); // 타이머 중지
 
-        System.out.println("Interview session ended without saving.");
+        System.out.println("Interview session ended.");
 
         currentQuestion = null; // 다음 질문을 막기 위해 currentQuestion도 초기화
     }

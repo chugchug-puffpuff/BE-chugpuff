@@ -9,6 +9,5 @@ import java.util.List;
 
 @Repository
 public interface AIInterviewFFRepository extends JpaRepository<AIInterviewFF, Long> {
-
-    List<AIInterviewFF> findByAiInterviewFF(AIInterview aiInterview);
+    List<AIInterviewFF> findByAiInterview(AIInterview aiInterview);
 }
