@@ -137,7 +137,7 @@ public class AIInterviewService {
 
             playAudio(ttsQuestion);
 
-            // 타이머 종료로 인해 인터뷰가 종료된 경우, 다음 질문 생성을 막기 위해 인터뷰 종료 확인
+            // 타이머 종료 후 인터뷰가 종료되었는지 확인
             if (!interviewInProgress) {
                 return;
             }
@@ -368,7 +368,10 @@ public class AIInterviewService {
             return;
         }
 
-        // 인터뷰가 종료될 때 전체 피드백을 생성
+        // 인터뷰를 즉시 종료 상태로 설정
+        interviewInProgress = false;
+
+        // 전체 피드백 생성
         if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
             List<AIInterviewFF> responses = aiInterviewFFRepository.findByAiInterview(aiInterview);
             if (!responses.isEmpty()) {
@@ -377,9 +380,6 @@ public class AIInterviewService {
                 System.out.println("No previous responses found. Skipping feedback generation.");
             }
         }
-
-        // 인터뷰 종료 상태로 설정
-        interviewInProgress = false;
 
         stopAudioCapture(); // 음성 캡처 중지
         stopCurrentAudio(); // 현재 재생 중인 오디오 중지
