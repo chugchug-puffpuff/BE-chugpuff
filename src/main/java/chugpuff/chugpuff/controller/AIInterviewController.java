@@ -93,7 +93,7 @@ public class AIInterviewController {
         System.out.println("Logged in user: " + userDetails.getUsername());
         AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
         if (aiInterview != null) {
-            aiInterviewService.saveFullFeedback(aiInterview, feedbackRequest.getQuestion(), feedbackRequest.getAnswer(), feedbackRequest.getFeedback());
+            aiInterviewService.saveFullFeedback(aiInterview, feedbackRequest.getQuestion(), feedbackRequest.getAnswer());
         }
     }
 
@@ -149,21 +149,24 @@ public class AIInterviewController {
 
         String sttText = externalAPIService.callSTT(audioFilePath);
 
-        // 즉시 피드백이 아닌 경우 다음 질문만 생성
-        if (!"즉시 피드백".equals(aiInterview.getFeedbackType())) {
+        if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
+            // 피드백 생성 후 사용자 응답 및 피드백을 저장
+            String feedback = aiInterviewService.getChatGPTFeedback(sttText, aiInterview);
+            aiInterviewService.saveImmediateFeedback(aiInterview, aiInterviewService.getCurrentQuestion(), sttText, feedback);
+
             String nextQuestion = aiInterviewService.getChatGPTQuestion(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
             aiInterviewService.handleInterviewProcess(aiInterview, nextQuestion);
+
+            return ResponseEntity.ok(feedback);
+        } else {
+            // 전체 피드백인 경우, 사용자 응답만 저장하고 다음 질문 생성 및 처리
+            aiInterviewService.saveUserResponse(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
+
+            String nextQuestion = aiInterviewService.getChatGPTQuestion(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
+            aiInterviewService.handleInterviewProcess(aiInterview, nextQuestion);
+
             return ResponseEntity.ok(nextQuestion);
         }
-
-        // 기존 즉시 피드백 로직
-        String feedback = aiInterviewService.getChatGPTFeedback(sttText, aiInterview);
-        aiInterviewService.saveImmediateFeedback(aiInterview, aiInterviewService.getCurrentQuestion(), sttText, feedback);
-
-        String nextQuestion = aiInterviewService.getChatGPTQuestion(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
-        aiInterviewService.handleInterviewProcess(aiInterview, nextQuestion);
-
-        return ResponseEntity.ok(feedback);
     }
 
     // AI 모의면접 종료

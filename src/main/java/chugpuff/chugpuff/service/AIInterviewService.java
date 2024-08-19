@@ -106,7 +106,7 @@ public class AIInterviewService {
         currentQuestion = initializeInterviewSession(aiInterview);
         interviewInProgress = true;
 
-        timerService.startTimer(30 * 60 * 1000, () -> {
+        timerService.startTimer(1 * 60 * 1000, () -> {
             endInterview(aiInterview);
         });
 
@@ -136,6 +136,11 @@ public class AIInterviewService {
             }
 
             playAudio(ttsQuestion);
+
+            // 타이머 종료로 인해 인터뷰가 종료된 경우, 다음 질문 생성을 막기 위해 인터뷰 종료 확인
+            if (!interviewInProgress) {
+                return;
+            }
 
             captureUserAudio();
         } catch (Exception e) {
@@ -229,15 +234,18 @@ public class AIInterviewService {
             System.out.println("Interview has ended, user response is not saved.");
             return;
         }
-        AIInterviewIF aiInterviewIF = new AIInterviewIF();
-        aiInterviewIF.setAiInterview(aiInterview);
-        aiInterviewIF.setI_question(question);
-        aiInterviewIF.setI_answer(response);
-        aiInterviewIFRepository.save(aiInterviewIF);
+
+        if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
+            AIInterviewFF aiInterviewFF = new AIInterviewFF();
+            aiInterviewFF.setAiInterview(aiInterview);
+            aiInterviewFF.setF_question(question);
+            aiInterviewFF.setF_answer(response);
+            aiInterviewFFRepository.save(aiInterviewFF);
+        }
     }
 
     // 전체 피드백 저장
-    public void saveFullFeedback(AIInterview aiInterview, String questions, String answers, String feedback) {
+    public void saveFullFeedback(AIInterview aiInterview, String questions, String answers) {
         if (!interviewInProgress) {
             System.out.println("Interview has ended, full feedback is not saved.");
             return;
@@ -249,32 +257,32 @@ public class AIInterviewService {
         aiInterviewFF.setF_question(questions);
         aiInterviewFF.setF_answer(answers);
         aiInterviewFFRepository.save(aiInterviewFF);
-
-        // AIInterviewFFB에 피드백 저장
-        AIInterviewFFB aiInterviewFFB = new AIInterviewFFB();
-        aiInterviewFFB.setAiInterview(aiInterview);
-        aiInterviewFFB.setF_feedback(feedback);
-        aiInterviewFFBRepository.save(aiInterviewFFB);
     }
 
     // 전체 피드백 처리
     private void handleFullFeedback(AIInterview aiInterview) {
-        List<AIInterviewIF> responses = aiInterviewIFRepository.findByAiInterview(aiInterview);
+        List<AIInterviewFF> responses = aiInterviewFFRepository.findByAiInterview(aiInterview);
+
+        if (responses.isEmpty()) {
+            System.out.println("No responses found for generating full feedback.");
+            return;  // 이전 응답이 없으면 피드백 생성하지 않음
+        }
+
         StringBuilder allQuestions = new StringBuilder();
         StringBuilder allResponses = new StringBuilder();
 
-        for (AIInterviewIF response : responses) {
-            allQuestions.append(response.getI_question()).append(" ");
-            allResponses.append(response.getI_answer()).append(" ");
+        for (AIInterviewFF response : responses) {
+            allQuestions.append(response.getF_question()).append(" ");
+            allResponses.append(response.getF_answer()).append(" ");
         }
 
         String fullFeedbackPrompt = "이 면접에서 다뤄진 모든 질문과 대답을 바탕으로 전체적인 피드백을 제공해주세요: " + allQuestions.toString() + allResponses.toString();
         String fullFeedback = externalAPIService.callChatGPT(fullFeedbackPrompt);
 
-        String ttsFeedback = externalAPIService.callTTS(fullFeedback);
-        playAudio(ttsFeedback);
-
-        saveFullFeedback(aiInterview, allQuestions.toString(), allResponses.toString(), fullFeedback);
+        AIInterviewFFB aiInterviewFFB = new AIInterviewFFB();
+        aiInterviewFFB.setAiInterview(aiInterview);
+        aiInterviewFFB.setF_feedback(fullFeedback);
+        aiInterviewFFBRepository.save(aiInterviewFFB);
     }
 
     // 인터뷰 진행 여부 확인
@@ -360,12 +368,18 @@ public class AIInterviewService {
             return;
         }
 
-        // 전체 피드백 생성 요청
+        // 인터뷰가 종료될 때 전체 피드백을 생성
         if ("전체 피드백".equals(aiInterview.getFeedbackType())) {
-            handleFullFeedback(aiInterview);  // full feedback을 생성하고 저장
+            List<AIInterviewFF> responses = aiInterviewFFRepository.findByAiInterview(aiInterview);
+            if (!responses.isEmpty()) {
+                handleFullFeedback(aiInterview);  // 전체 피드백을 생성하고 저장
+            } else {
+                System.out.println("No previous responses found. Skipping feedback generation.");
+            }
         }
 
-        interviewInProgress = false;  // 이 위치로 이동하여 interviewInProgress를 나중에 false로 설정
+        // 인터뷰 종료 상태로 설정
+        interviewInProgress = false;
 
         stopAudioCapture(); // 음성 캡처 중지
         stopCurrentAudio(); // 현재 재생 중인 오디오 중지
