@@ -106,7 +106,7 @@ public class AIInterviewService {
         currentQuestion = initializeInterviewSession(aiInterview);
         interviewInProgress = true;
 
-        timerService.startTimer(1 * 60 * 1000, () -> {
+        timerService.startTimer(30 * 60 * 1000, () -> {
             endInterview(aiInterview);
         });
 
@@ -198,7 +198,7 @@ public class AIInterviewService {
                     aiInterview.getMember().getJobKeyword()
             );
         } else if ("인성 면접".equals(aiInterview.getInterviewType())) {
-            chatPrompt += " 이 피드백은 인성 면접에 대한 피드백을 주어야합니다. 면접의 질문에 대한 사용자의 답변에 대해 피드백을 존댓말로 제공해주세요.";
+            chatPrompt += " 이 피드백은 인성 면접에 대한 피드백을 주어야합니다. 면접의 질문에 대한 사용자의 답변에 대해 피드백을 존댓말로 제공해주세요. 200자 내로 제공해주세요.";
         }
 
         System.out.println("Sending to ChatGPT: " + chatPrompt);
