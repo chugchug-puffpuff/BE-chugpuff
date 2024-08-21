@@ -179,6 +179,17 @@ public class AIInterviewController {
 
         aiInterviewService.endInterview(aiInterview);
     }
+
+    // AIInterviewNo로 면접 조회
+    @GetMapping("/{AIInterviewNo}")
+    public ResponseEntity<AIInterviewDTO> getInterviewById(@PathVariable Long AIInterviewNo) {
+        AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
+        if (aiInterview == null) {
+            return ResponseEntity.status(404).body(null);
+        }
+        AIInterviewDTO aiInterviewDTO = aiInterviewService.convertToDTO(aiInterview);
+        return ResponseEntity.ok(aiInterviewDTO);
+    }
 }
 
 @Getter

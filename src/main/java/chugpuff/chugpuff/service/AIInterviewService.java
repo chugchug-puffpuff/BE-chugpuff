@@ -4,6 +4,9 @@ import chugpuff.chugpuff.domain.AIInterview;
 import chugpuff.chugpuff.domain.AIInterviewFF;
 import chugpuff.chugpuff.domain.AIInterviewFFB;
 import chugpuff.chugpuff.domain.AIInterviewIF;
+import chugpuff.chugpuff.dto.AIInterviewDTO;
+import chugpuff.chugpuff.dto.AIInterviewFFDTO;
+import chugpuff.chugpuff.dto.AIInterviewIFDTO;
 import chugpuff.chugpuff.repository.AIInterviewFFBRepository;
 import chugpuff.chugpuff.repository.AIInterviewRepository;
 import chugpuff.chugpuff.repository.AIInterviewFFRepository;
@@ -17,6 +20,7 @@ import org.springframework.stereotype.Service;
 import javax.sound.sampled.*;
 import java.io.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class AIInterviewService {
@@ -388,5 +392,41 @@ public class AIInterviewService {
         System.out.println("Interview session ended.");
 
         currentQuestion = null; // 다음 질문을 막기 위해 currentQuestion도 초기화
+    }
+
+    public AIInterviewDTO convertToDTO(AIInterview aiInterview) {
+        AIInterviewDTO dto = new AIInterviewDTO();
+        dto.setAIInterviewNo(aiInterview.getAIInterviewNo());
+        dto.setUser_id(aiInterview.getMember().getUser_id());
+        dto.setInterviewType(aiInterview.getInterviewType());
+        dto.setFeedbackType(aiInterview.getFeedbackType());
+        dto.setImmediateFeedbacks(
+                aiInterview.getImmediateFeedbacks().stream().map(this::convertToIFDTO).collect(Collectors.toList())
+        );
+        dto.setOverallFeedbacks(
+                aiInterview.getOverallFeedbacks().stream().map(this::convertToFFDTO).collect(Collectors.toList())
+        );
+        // AIInterviewNo에 해당하는 전체 피드백을 포함
+        if (aiInterview.getFeedbacks() != null && !aiInterview.getFeedbacks().isEmpty()) {
+            dto.setF_feedback(aiInterview.getFeedbacks().get(0).getF_feedback());
+        }
+        return dto;
+    }
+
+    private AIInterviewIFDTO convertToIFDTO(AIInterviewIF aiInterviewIF) {
+        AIInterviewIFDTO dto = new AIInterviewIFDTO();
+        dto.setAIInterviewIFNo(aiInterviewIF.getAIInterviewIFNo());
+        dto.setI_question(aiInterviewIF.getI_question());
+        dto.setI_answer(aiInterviewIF.getI_answer());
+        dto.setI_feedback(aiInterviewIF.getI_feedback());
+        return dto;
+    }
+
+    private AIInterviewFFDTO convertToFFDTO(AIInterviewFF aiInterviewFF) {
+        AIInterviewFFDTO dto = new AIInterviewFFDTO();
+        dto.setAIInterviewFFNo(aiInterviewFF.getAIInterviewFFNo());
+        dto.setF_question(aiInterviewFF.getF_question());
+        dto.setF_answer(aiInterviewFF.getF_answer());
+        return dto;
     }
 }
