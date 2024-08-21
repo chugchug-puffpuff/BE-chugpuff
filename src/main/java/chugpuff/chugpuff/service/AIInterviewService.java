@@ -361,11 +361,6 @@ public class AIInterviewService {
         }
     }
 
-    // AI 면접 ID로 면접 조회
-    public AIInterview getInterviewById(Long AIInterviewNo) {
-        return aiInterviewRepository.findById(AIInterviewNo).orElse(null);
-    }
-
     // 인터뷰 종료 처리
     public void endInterview(AIInterview aiInterview) {
         if (!interviewInProgress) {
@@ -392,6 +387,18 @@ public class AIInterviewService {
         System.out.println("Interview session ended.");
 
         currentQuestion = null; // 다음 질문을 막기 위해 currentQuestion도 초기화
+    }
+
+    // AIInterviewNo로 면접 조회
+    public AIInterview getInterviewById(Long AIInterviewNo) {
+        return aiInterviewRepository.findById(AIInterviewNo).orElse(null);
+    }
+
+    // AIInterviewNo로 면접 삭제
+    public void deleteInterviewById(Long AIInterviewNo) {
+        AIInterview aiInterview = aiInterviewRepository.findById(AIInterviewNo)
+                .orElseThrow(() -> new RuntimeException("Interview not found with ID: " + AIInterviewNo));
+        aiInterviewRepository.delete(aiInterview);
     }
 
     public AIInterviewDTO convertToDTO(AIInterview aiInterview) {

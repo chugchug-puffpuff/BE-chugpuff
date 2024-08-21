@@ -190,6 +190,13 @@ public class AIInterviewController {
         AIInterviewDTO aiInterviewDTO = aiInterviewService.convertToDTO(aiInterview);
         return ResponseEntity.ok(aiInterviewDTO);
     }
+
+    // AIInterviewNo로 면접 삭제
+    @DeleteMapping("/{AIInterviewNo}")
+    public ResponseEntity<Void> deleteInterview(@PathVariable Long AIInterviewNo) {
+        aiInterviewService.deleteInterviewById(AIInterviewNo);
+        return ResponseEntity.noContent().build();
+    }
 }
 
 @Getter
