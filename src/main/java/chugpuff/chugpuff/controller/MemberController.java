@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/members")
+@RequestMapping("/api/members")
 public class MemberController {
 
     private MemberService memberService;
@@ -111,10 +111,18 @@ public class MemberController {
 //        return String.valueOf(code);
 //    }
 
-    // ID로 특정 회원 조회
+    // user_id로 특정 회원 조회
     @GetMapping("/{user_id}")
     public ResponseEntity<MemberDTO> getMemberByUser_id(@PathVariable Long user_id) {
         Optional<Member> optionalMember = memberService.getMemberByUser_id(user_id);
+        return optionalMember.map(member -> new ResponseEntity<>(convertToDto(member), HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    // id로 특정 회원 조회
+    @GetMapping("/username/{username}")
+    public ResponseEntity<MemberDTO> getMemberByUsername(@PathVariable String username) {
+        Optional<Member> optionalMember = memberService.getMemberByUsername(username);
         return optionalMember.map(member -> new ResponseEntity<>(convertToDto(member), HttpStatus.OK))
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }

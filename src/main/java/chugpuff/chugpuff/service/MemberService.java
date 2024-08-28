@@ -38,7 +38,7 @@ public class MemberService {
         return memberRepository.findById(user_id);
     }
 
-    // ID로 회원 조회
+    // id로 회원 조회
     public Optional<Member> getMemberByUsername(String username) {
         return memberRepository.findById(username);
     }
