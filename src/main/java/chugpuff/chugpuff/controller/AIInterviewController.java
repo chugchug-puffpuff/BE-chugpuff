@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -189,6 +190,12 @@ public class AIInterviewController {
         }
         AIInterviewDTO aiInterviewDTO = aiInterviewService.convertToDTO(aiInterview);
         return ResponseEntity.ok(aiInterviewDTO);
+    }
+
+    // id로 면접 조회
+    @GetMapping("/id/{id}")
+    public List<AIInterview> getInterviewsByMember(@PathVariable String id) {
+        return aiInterviewService.findByMemberId(id);
     }
 
     // AIInterviewNo로 면접 삭제

@@ -394,6 +394,11 @@ public class AIInterviewService {
         return aiInterviewRepository.findById(AIInterviewNo).orElse(null);
     }
 
+    // id로 면접 조회
+    public List<AIInterview> findByMemberId(String id) {
+        return aiInterviewRepository.findByMemberId(id);
+    }
+
     // AIInterviewNo로 면접 삭제
     public void deleteInterviewById(Long AIInterviewNo) {
         AIInterview aiInterview = aiInterviewRepository.findById(AIInterviewNo)
