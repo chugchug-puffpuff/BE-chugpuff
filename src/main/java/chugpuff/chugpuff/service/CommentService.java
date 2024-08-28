@@ -92,26 +92,6 @@ public class CommentService {
         commentRepository.delete(comment);
     }
 
-    /**
-     * ID로 댓글 조회
-     * 해당 ID의 댓글이 없으면 null 반환
-     *
-     * @param bcNo 조회할 댓글의 ID
-     * @return 조회된 댓글 엔티티 또는 null
-     */
-    public Comment findById(int bcNo) {
-        return commentRepository.findById(bcNo).orElse(null);
-    }
-
-    /**
-     * 모든 댓글 조회
-     *
-     * @return 모든 댓글 목록
-     */
-    public List<Comment> findAll() {
-        return commentRepository.findAll();
-    }
-
 
     // 사용자별 댓글 조회
     public List<CommentDTO> findCommentsByUser(Authentication authentication) {
@@ -120,6 +100,14 @@ public class CommentService {
                 .orElseThrow(() -> new EntityNotFoundException("회원을 찾을 수 없습니다."));
 
         return commentRepository.findByMember_Id(member.getId()).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    // 특정 게시글에 달린 댓글 조회
+    public List<CommentDTO> findCommentsByBoard(int boardNo) {
+        List<Comment> comments = commentRepository.findByBoard_BoardNo(boardNo);
+        return comments.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

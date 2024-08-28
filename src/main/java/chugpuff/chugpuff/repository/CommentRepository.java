@@ -13,4 +13,6 @@ public interface CommentRepository extends JpaRepository<Comment, Integer> {
     //게시글 삭제 시 댓글 삭제
     void deleteByBoard_BoardNo(int boardNo);
 
+    // 게시글 번호로 댓글 조회
+    List<Comment> findByBoard_BoardNo(int boardNo);
 }
