@@ -68,7 +68,7 @@ public class AIInterviewController {
         System.out.println("Logged in user: " + userDetails.getUsername());
         System.out.println("Interview owner user_id: " + aiInterview.getMember().getUser_id());
 
-        aiInterviewService.startInterview(AIInterviewNo);
+        aiInterviewService.startInterview(AIInterviewNo, userDetails);
     }
 
     // AI 모의면접 중지
@@ -134,7 +134,7 @@ public class AIInterviewController {
 
     // 녹음된 파일을 STT로 변환하여 텍스트로 반환하고 ChatGPT로 보내기
     @PostMapping("/{AIInterviewNo}/process-audio-response")
-    public ResponseEntity<String> processAudioResponse(@PathVariable Long AIInterviewNo, @RequestParam("audioFile") MultipartFile audioFile) {
+    public ResponseEntity<String> processAudioResponse(@PathVariable Long AIInterviewNo, @RequestParam("audioFile") MultipartFile audioFile, @AuthenticationPrincipal UserDetails userDetails) {
         AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
         if (aiInterview == null) {
             return ResponseEntity.badRequest().body("Interview not found");
@@ -150,22 +150,19 @@ public class AIInterviewController {
 
         String sttText = externalAPIService.callSTT(audioFilePath);
 
+        // 서비스 계층에서 자기소개서 내용을 가져옴
+        String selfIntroductionContent = aiInterviewService.getSelfIntroductionContentForInterview(userDetails);
+
+        String nextQuestion = aiInterviewService.getChatGPTQuestion(aiInterview, aiInterviewService.getCurrentQuestion(), sttText, selfIntroductionContent);
+
         if ("즉시 피드백".equals(aiInterview.getFeedbackType())) {
-            // 피드백 생성 후 사용자 응답 및 피드백을 저장
             String feedback = aiInterviewService.getChatGPTFeedback(sttText, aiInterview);
             aiInterviewService.saveImmediateFeedback(aiInterview, aiInterviewService.getCurrentQuestion(), sttText, feedback);
-
-            String nextQuestion = aiInterviewService.getChatGPTQuestion(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
             aiInterviewService.handleInterviewProcess(aiInterview, nextQuestion);
-
             return ResponseEntity.ok(feedback);
         } else {
-            // 전체 피드백인 경우, 사용자 응답만 저장하고 다음 질문 생성 및 처리
             aiInterviewService.saveUserResponse(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
-
-            String nextQuestion = aiInterviewService.getChatGPTQuestion(aiInterview, aiInterviewService.getCurrentQuestion(), sttText);
             aiInterviewService.handleInterviewProcess(aiInterview, nextQuestion);
-
             return ResponseEntity.ok(nextQuestion);
         }
     }
