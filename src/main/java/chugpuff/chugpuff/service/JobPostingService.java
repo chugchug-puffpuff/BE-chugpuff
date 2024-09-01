@@ -290,5 +290,15 @@ public class JobPostingService {
             throw new IllegalArgumentException("Region name not found: " + regionName);
         }
     }
+
+    //세부 직무명 조회
+    public List<String> getJobNamesByJobMidName(String jobMidName) {
+        List<JobCode> jobCodes = jobCodeRepository.findByJobMidName(jobMidName);
+
+        // jobCodes 목록에서 jobName만 추출하여 리스트로 반환
+        return jobCodes.stream()
+                .map(JobCode::getJobName)
+                .collect(Collectors.toList());
+    }
 }
 

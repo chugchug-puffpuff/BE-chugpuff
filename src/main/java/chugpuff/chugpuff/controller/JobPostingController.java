@@ -138,4 +138,11 @@ public class JobPostingController {
         List<String> regions = jobPostingService.getRegionsByLocBcd(regionName);
         return ResponseEntity.ok(regions);
     }
+
+    //세부 직무명 조회
+    @GetMapping("/job-names")
+    public ResponseEntity<List<String>> getJobNamesByJobMidName(@RequestParam String jobMidName) {
+        List<String> jobNames = jobPostingService.getJobNamesByJobMidName(jobMidName);
+        return ResponseEntity.ok(jobNames);
+    }
 }

@@ -9,4 +9,5 @@ public interface JobCodeRepository extends JpaRepository<JobCode, Long> {
 
     List<JobCode> findByJobMidName(String jobMidName);
     JobCode findByJobName(String jobName);
+
 }
