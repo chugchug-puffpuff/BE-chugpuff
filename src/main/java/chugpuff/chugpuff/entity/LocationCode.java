@@ -17,5 +17,4 @@ public class LocationCode {
     private String locMcd;
     private String locBcd;
 
-    // Getters and Setters
 }

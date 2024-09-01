@@ -274,5 +274,21 @@ public class JobPostingService {
 
         return sortedJobDetails;
     }
+
+    //2차 근무지 지역명 조회
+    public List<String> getRegionsByLocBcd(String regionName) {
+        List<LocationCode> locationCodes = locationCodeRepository.findByRegionName(regionName);
+
+        if (locationCodes != null && !locationCodes.isEmpty()) {
+            String locBcd = locationCodes.get(0).getLocBcd();  // 첫 번째 결과의 locBcd를 사용
+            List<LocationCode> matchingRegions = locationCodeRepository.findByLocBcd(locBcd);
+
+            return matchingRegions.stream()
+                    .map(LocationCode::getRegionName)
+                    .collect(Collectors.toList());
+        } else {
+            throw new IllegalArgumentException("Region name not found: " + regionName);
+        }
+    }
 }
 
