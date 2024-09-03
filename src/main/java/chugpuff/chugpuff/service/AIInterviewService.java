@@ -89,7 +89,7 @@ public class AIInterviewService {
     }
 
     // 인터뷰 세션 초기화 및 질문 생성 메서드
-    private String initializeInterviewSession(AIInterview aiInterview, UserDetails userDetails) {
+    public String initializeInterviewSession(AIInterview aiInterview, UserDetails userDetails) {
         String chatPrompt;
 
         if ("인성 면접".equals(aiInterview.getInterviewType())) {
@@ -338,7 +338,7 @@ public class AIInterviewService {
     }
 
     // 인터뷰 진행 여부 확인
-    private boolean interviewInProgress() {
+    public boolean interviewInProgress() {
         return interviewInProgress;
     }
 
@@ -361,7 +361,7 @@ public class AIInterviewService {
     }
 
     // 사용자 음성 응답 캡처
-    private void captureUserAudio() {
+    public void captureUserAudio() {
         if (!interviewInProgress) {
             return;
         }
