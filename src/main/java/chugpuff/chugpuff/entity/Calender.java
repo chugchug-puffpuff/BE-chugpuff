@@ -28,7 +28,7 @@ public class Calender {
     @JoinColumn(name = "user_id", referencedColumnName = "user_id")
     private Member member;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scrap_id", referencedColumnName = "id")
     private Scrap scrap;
 }

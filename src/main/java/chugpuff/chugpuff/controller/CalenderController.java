@@ -10,7 +10,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/calenders")
@@ -66,4 +69,29 @@ public class CalenderController {
         calenderService.deleteCalender(id);
         return ResponseEntity.noContent().build();
     }
+
+    //마감기한 푸시 알림 (수동 트리거)
+    @GetMapping("/notifications")
+    public List<String> getD1DeadlineNotifications(@AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+        Member member = memberService.getMemberByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("해당 멤버를 찾을 수 없습니다."));
+
+        // 현재 날짜의 다음날을 구함 (테스트를 위해 +5일)
+        LocalDate tomorrow = LocalDate.now().plusDays(1);
+
+        // 쿼리 결과 디버깅
+        List<Calender> d1Deadlines = calenderService.getCalendersByMemberAndMemoDate(member, tomorrow);
+        if (d1Deadlines.isEmpty()) {
+            System.out.println("No D-1 deadlines found for member: " + username);
+        } else {
+            d1Deadlines.forEach(calender -> System.out.println("Found D-1 deadline: " + calender.getMemoContent()));
+        }
+
+
+        return d1Deadlines.stream()
+                .map(calender -> "스크랩한 공고 '" + calender.getMemoContent() + "'의 마감 기한이 D-1입니다. 지금 바로 지원해 보세요!")
+                .collect(Collectors.toList());
+    }
+
 }
