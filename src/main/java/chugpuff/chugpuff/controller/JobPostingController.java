@@ -38,14 +38,18 @@ public class JobPostingController {
         return ResponseEntity.ok().body(result);
     }
 
-    //키워드 검색
+    //키워드 검색 + 필터링
     @GetMapping("/search")
     public ResponseEntity<String> getJobPostingsByKeywords(
             @RequestParam String keywords,
+            @RequestParam(required = false) String regionName,
+            @RequestParam(required = false) String jobName,
             @RequestParam(required = false) String sortBy) {
-        String result = jobPostingService.getJobPostingsByKeywords(keywords, sortBy);
+
+        String result = jobPostingService.getJobPostingsByKeywords(keywords, regionName, jobName, sortBy);
         return ResponseEntity.ok().body(result);
     }
+
 
     //특정 공고 조회
     @GetMapping("/{jobId}")
