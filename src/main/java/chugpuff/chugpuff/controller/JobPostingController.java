@@ -121,6 +121,13 @@ public class JobPostingController {
         return ResponseEntity.noContent().build();
     }
 
+    // 특정 공고에 달린 댓글 조회
+    @GetMapping("/{jobId}/comments")
+    public ResponseEntity<List<JobPostingComment>> getCommentsForJobPosting(@PathVariable String jobId) {
+        List<JobPostingComment> comments = jobPostingService.getCommentsForJobPosting(jobId);
+        return ResponseEntity.ok(comments);
+    }
+
     // 요청 바디 작성을 위한
     public static class CommentRequest {
         private String comment;

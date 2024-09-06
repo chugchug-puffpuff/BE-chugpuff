@@ -292,6 +292,12 @@ public class JobPostingService {
         jobPostingCommentRepository.delete(jobPostingComment);
     }
 
+    // 댓글 조회
+    public List<JobPostingComment> getCommentsForJobPosting(String jobId) {
+        return jobPostingCommentRepository.findByJobId(jobId);
+    }
+
+
     //스크랩순 정렬
     public List<String> getJobPostingsSortedByScrapCount() {
         List<Object[]> jobIdsWithScrapCount = scrapRepository.findJobIdsOrderByScrapCount();
