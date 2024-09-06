@@ -58,7 +58,9 @@ public class JobPostingService {
     //공고 조회 및 필터링
     public String getJobPostings(String regionName, String jobMidName, String jobName, String sortBy) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
-                .queryParam("access-key", accessKey);
+                .queryParam("access-key", accessKey)
+                .queryParam("count", 110);
+
 
         List<LocationCode> locationCodes = locationCodeRepository.findByRegionName(regionName);
 
@@ -97,7 +99,7 @@ public class JobPostingService {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
                 .queryParam("access-key", accessKey)
                 .queryParam("keywords", encodedKeywords)
-                .queryParam("count", 1000);
+                .queryParam("count", 110);
 
         // 지역 필터 추가
         if (regionName != null && !regionName.isEmpty()) {
@@ -166,7 +168,8 @@ public class JobPostingService {
         String jobKeyword = member.getJobKeyword();
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
-                .queryParam("access-key", accessKey);
+                .queryParam("access-key", accessKey)
+                .queryParam("count", 110);
 
 
         if (jobKeyword != null && !jobKeyword.isEmpty()) {
