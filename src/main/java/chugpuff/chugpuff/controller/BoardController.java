@@ -128,13 +128,17 @@ public class BoardController {
 
     //게시글 검색
     @GetMapping("/search")
-    public ResponseEntity<List<BoardDTO>> searchBoards(@RequestParam("keyword") String keyword) {
-        List<BoardDTO> boardDTOs = boardService.searchByKeyword(keyword)
+    public ResponseEntity<List<BoardDTO>> searchBoards(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "categoryId", required = false) Integer categoryId) {
+
+        List<BoardDTO> boardDTOs = boardService.searchByCategoryAndKeyword(categoryId, keyword)
                 .stream()
-                .map(board -> boardService.convertToDTO(board)) // board -> boardService.convertToDTO(board)
+                .map(board -> boardService.convertToDTO(board))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(boardDTOs);
     }
+
 
     // 사용자 토큰으로 게시글 조회
     @GetMapping("/user")
