@@ -26,13 +26,13 @@ public class JobPostingController {
             @RequestParam(required = false) String regionName,
             @RequestParam(required = false) String jobMidName,
             @RequestParam(required = false) String jobName,
-            @RequestParam(required = false) String sortBy) {
+            @RequestParam(required = false) String sort) {
 
         String result;
-        if ("scrap-count".equals(sortBy)) {
+        if ("scrap-count".equals(sort)) {
             result = String.join(", ", jobPostingService.getJobPostingsSortedByScrapCount());
         } else {
-            result = jobPostingService.getJobPostings(regionName, jobMidName, jobName, sortBy);
+            result = jobPostingService.getJobPostings(regionName, jobMidName, jobName, sort);
         }
 
         return ResponseEntity.ok().body(result);
@@ -44,9 +44,9 @@ public class JobPostingController {
             @RequestParam String keywords,
             @RequestParam(required = false) String regionName,
             @RequestParam(required = false) String jobName,
-            @RequestParam(required = false) String sortBy) {
+            @RequestParam(required = false) String sort) {
 
-        String result = jobPostingService.getJobPostingsByKeywords(keywords, regionName, jobName, sortBy);
+        String result = jobPostingService.getJobPostingsByKeywords(keywords, regionName, jobName, sort);
         return ResponseEntity.ok().body(result);
     }
 
