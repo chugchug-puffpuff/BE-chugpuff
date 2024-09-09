@@ -1,6 +1,7 @@
 package chugpuff.chugpuff.entity;
 
 import chugpuff.chugpuff.domain.Member;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,6 +10,7 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "scrap")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Scrap {
 
     @Id
