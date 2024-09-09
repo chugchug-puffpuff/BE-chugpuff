@@ -56,7 +56,7 @@ public class JobPostingService {
     private JobPostingCommentRepository jobPostingCommentRepository;
 
     //공고 조회 및 필터링
-    public String getJobPostings(String regionName, String jobMidName, String jobName, String sort) {
+    public String getJobPostings(String regionName, String jobName, String sort) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(API_URL)
                 .queryParam("access-key", accessKey)
                 .queryParam("count", 110);
@@ -70,11 +70,10 @@ public class JobPostingService {
             }
         }
 
-        List<JobCode> jobCodes = jobCodeRepository.findByJobMidName(jobMidName);
+        JobCode jobCode = jobCodeRepository.findByJobName(jobName);
 
-        for (JobCode jobCode : jobCodes) {
-            builder.queryParam("job_mid_cd", jobCode.getJobMidCd())
-                    .queryParam("job_cd", jobCode.getJobCd());
+        if (jobCode != null) {
+            builder.queryParam("job_cd", jobCode.getJobCd());
         }
 
         if (sort != null && !sort.isEmpty()) {

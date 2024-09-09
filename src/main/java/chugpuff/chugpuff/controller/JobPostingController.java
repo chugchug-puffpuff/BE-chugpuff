@@ -24,7 +24,6 @@ public class JobPostingController {
     @GetMapping("")
     public ResponseEntity<String> getJobPostings(
             @RequestParam(required = false) String regionName,
-            @RequestParam(required = false) String jobMidName,
             @RequestParam(required = false) String jobName,
             @RequestParam(required = false) String sort) {
 
@@ -32,7 +31,7 @@ public class JobPostingController {
         if ("scrap-count".equals(sort)) {
             result = String.join(", ", jobPostingService.getJobPostingsSortedByScrapCount());
         } else {
-            result = jobPostingService.getJobPostings(regionName, jobMidName, jobName, sort);
+            result = jobPostingService.getJobPostings(regionName, jobName, sort);
         }
 
         return ResponseEntity.ok().body(result);
