@@ -296,6 +296,20 @@ public class JobPostingService {
         return jobPostingCommentRepository.findByJobId(jobId);
     }
 
+    //사용자가 작성한 댓글 모두 조회
+    public List<JobPostingComment> getCommentsByUser(String memberId) {
+        Optional<Member> optionalMember = memberRepository.findById(memberId);
+
+        if (optionalMember.isEmpty()) {
+            throw new IllegalArgumentException("Member not found with id: " + memberId);
+        }
+
+        Member member = optionalMember.get();
+
+        // 사용자가 작성한 모든 댓글 조회
+        return jobPostingCommentRepository.findByMember(member);
+    }
+
 
     //스크랩순 정렬
     public List<String> getJobPostingsSortedByScrapCount() {

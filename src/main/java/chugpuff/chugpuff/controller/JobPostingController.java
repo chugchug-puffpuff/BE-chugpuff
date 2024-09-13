@@ -127,6 +127,16 @@ public class JobPostingController {
         return ResponseEntity.ok(comments);
     }
 
+    // 사용자가 작성한 모든 댓글 조회
+    @GetMapping("/comments/user")
+    public ResponseEntity<List<JobPostingComment>> getUserComments(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        String memberId = userDetails.getUsername();
+
+        List<JobPostingComment> userComments = jobPostingService.getCommentsByUser(memberId);
+        return ResponseEntity.ok().body(userComments);
+    }
+
     // 요청 바디 작성을 위한
     public static class CommentRequest {
         private String comment;
