@@ -1,5 +1,6 @@
 package chugpuff.chugpuff.controller;
 
+import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.dto.BoardDTO;
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.service.BoardService;
@@ -124,6 +125,12 @@ public class BoardController {
     public ResponseEntity<Void> toggleLike(@PathVariable int boardNo) {
         likeService.toggleLike(boardNo);
         return ResponseEntity.ok().build();
+    }
+
+    // 토큰을 통해 인증된 사용자가 좋아요한 게시글 조회
+    @GetMapping("/liked")
+    public List<Board> getBoardsLikedByAuthenticatedUser(Authentication authentication) {
+        return boardService.findBoardsLikedByAuthenticatedUser(authentication);
     }
 
     //게시글 검색

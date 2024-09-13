@@ -13,6 +13,7 @@ import chugpuff.chugpuff.repository.MemberRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -159,8 +160,17 @@ public class BoardService {
         }
     }
 
+    // 인증된 사용자가 좋아요한 게시글 조회
+    public List<Board> findBoardsLikedByAuthenticatedUser(Authentication authentication) {
+        String username = authentication.getName(); // 토큰에서 사용자 이름을 가져옴
 
+        // 사용자 정보 조회
+        Member member = memberRepository.findById(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
 
+        // 사용자가 좋아요한 게시글 조회
+        return boardRepository.findByMemberLikes(member);
+    }
 
     // 사용자별 게시글 조회
     public List<BoardDTO> findBoardsByUser(Authentication authentication) {

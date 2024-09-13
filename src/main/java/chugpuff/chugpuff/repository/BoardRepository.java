@@ -1,8 +1,10 @@
 package chugpuff.chugpuff.repository;
 
+import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.entity.Board;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -28,4 +30,8 @@ public interface BoardRepository extends JpaRepository<Board, Integer> {
 
     // 회원별 작성한 게시글 조회
     List<Board> findByMember_Id(String memberId);
+
+    // 특정 사용자가 좋아요한 게시글 조회
+    @Query("SELECT b FROM Board b JOIN Like l ON b.boardNo = l.board.boardNo WHERE l.member = :member")
+    List<Board> findByMemberLikes(@Param("member") Member member);
 }

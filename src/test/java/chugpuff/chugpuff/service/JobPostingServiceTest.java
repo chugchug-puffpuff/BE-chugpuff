@@ -111,7 +111,7 @@ public class JobPostingServiceTest {
         String expectedResponse = "{\"jobs\":{\"count\":10,\"start\":0,\"total\":\"1824\",\"job\":[{\"url\":\"http://www.saramin.co.kr/zf_user/jobs/relay/view?rec_idx=48698123&utm_source=job-search-api&utm_medium=api&utm_campaign=saramin-job-search-api\",\"active\":1,\"company\":{\"detail\":{\"href\":\"http://www.saramin.co.kr/company/detail?com_idx=12345\"}},\"id\":\"48698146\"}]}}";
         when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(expectedResponse);
 
-        String actualResponse = jobPostingService.getJobPostings(regionName, jobMidName, jobName, sortBy);
+        String actualResponse = jobPostingService.getJobPostings(regionName, jobName, sortBy);
 
         // JSON 객체로 변환
         JSONObject expectedJson = new JSONObject(expectedResponse);

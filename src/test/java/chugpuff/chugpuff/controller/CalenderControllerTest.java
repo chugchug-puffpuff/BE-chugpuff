@@ -2,6 +2,8 @@ package chugpuff.chugpuff.controller;
 
 import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.entity.Calender;
+import chugpuff.chugpuff.jwt.JwtUtil;
+import chugpuff.chugpuff.security.JwtRequestFilter;
 import chugpuff.chugpuff.service.CalenderService;
 import chugpuff.chugpuff.service.MemberService;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +18,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDate;
@@ -36,9 +42,17 @@ class CalenderControllerTest {
     @MockBean
     private CalenderService calenderService;
 
-    @Mock
+    @MockBean
     private MemberService memberService;
 
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private JwtRequestFilter jwtRequestFilter;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
     @InjectMocks
     private CalenderController calenderController;
 
@@ -48,11 +62,18 @@ class CalenderControllerTest {
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(calenderController).build();
+        UserDetails userDetails = User.builder()
+                .username("user")
+                .password("password")
+                .roles("USER")
+                .build();
+
+        // UserDetailsService 모킹
+        when(userDetailsService.loadUserByUsername("user")).thenReturn(userDetails);
     }
 
-
     //일정 조회
+    @WithMockUser(username = "user", roles = {"USER"})
     @Test
     void testGetCalenderById() throws Exception {
         Calender calender = new Calender();
@@ -67,6 +88,8 @@ class CalenderControllerTest {
     }
 
     //일정 생성
+    //임시 사용자 인증
+    @WithMockUser(username = "user", roles = {"USER"})
     @Test
     void testCreateCalender() throws Exception {
         Calender calender = new Calender();
@@ -87,6 +110,7 @@ class CalenderControllerTest {
     }
 
     //모든 일정 조회
+    @WithMockUser(username = "user", roles = {"USER"})
     @Test
     void testGetAllCalenders() throws Exception {
         Member member = new Member();
@@ -108,6 +132,7 @@ class CalenderControllerTest {
     }
 
     //일정 수정
+    @WithMockUser(username = "user", roles = {"USER"})
     @Test
     void testUpdateCalender() throws Exception {
         Long calenderId = 1L;
@@ -130,6 +155,7 @@ class CalenderControllerTest {
 
 
     //일정 삭제
+    @WithMockUser(username = "user", roles = {"USER"})
     @Test
     void testDeleteCalender() throws Exception {
         Long calenderId = 1L;
@@ -144,6 +170,7 @@ class CalenderControllerTest {
 
 
     //마감기한 푸시 알림
+    @WithMockUser(username = "user", roles = {"USER"})
     @Test
     void testGetD1DeadlineNotifications() throws Exception {
         String username = "user";

@@ -73,11 +73,10 @@ public class JobPostingControllerTest {
     @Test
     @WithMockUser(username = "user", roles = {"USER"})
     public void testGetJobPostings() throws Exception {
-        when(jobPostingService.getJobPostings(anyString(), anyString(), anyString(), anyString())).thenReturn("test response");
+        when(jobPostingService.getJobPostings(anyString(), anyString(), anyString())).thenReturn("test response");
 
         mockMvc.perform(get("/api/job-postings")
                         .param("regionName", "서울")
-                        .param("jobMidName", "IT")
                         .param("jobName", "풀스택")
                         .param("sortBy", "scrap-count"))
                 .andExpect(status().isOk());
