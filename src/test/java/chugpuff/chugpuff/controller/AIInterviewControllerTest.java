@@ -52,45 +52,38 @@ class AIInterviewControllerTest {
 
     @Test
     @WithMockUser
-    void testSaveInterview() throws Exception {
-        // 테스트할 AIInterviewDTO 생성
+    void testCreateInterview() throws Exception {
         AIInterviewDTO aiInterviewDTO = new AIInterviewDTO();
         aiInterviewDTO.setUser_id(1L);
-        aiInterviewDTO.setInterviewType("Technical");
-        aiInterviewDTO.setFeedbackType("Full");
-        aiInterviewDTO.setF_feedback("Sample feedback");
+        aiInterviewDTO.setInterviewType("직무 면접");
+        aiInterviewDTO.setFeedbackType("전체 피드백");
 
-        // 테스트용 Member 생성
-        Member member = Member.builder()
-                .user_id(1L)
-                .id("user123")
-                .password("password123")
-                .name("John Doe")
-                .job("Developer")
-                .jobKeyword("Java, Spring")
-                .email("john.doe@example.com")
-                .isAbove15(true)
-                .privacyPolicyAccepted(true)
-                .recordingAccepted(true)
-                .build();
+        Member member = new Member();
+        member.setUser_id(1L);
+        member.setId("test1");
 
-        // 테스트용 AIInterview 생성
         AIInterview aiInterview = new AIInterview();
-        aiInterview.setAIInterviewNo(1L); // AIInterviewNo 필드를 설정합니다.
+        aiInterview.setAIInterviewNo(1L);
         aiInterview.setMember(member);
-        aiInterview.setInterviewType("Technical");
-        aiInterview.setFeedbackType("Full");
+        aiInterview.setInterviewType("직무 면접");
+        aiInterview.setFeedbackType("전체 피드백");
 
-        // Mock 설정
-        given(memberService.getMemberByUser_id(1L)).willReturn(Optional.of(member)); // Long 타입 사용
-        given(aiInterviewService.saveInterview(any(AIInterview.class))).willReturn(aiInterview);
+        given(memberService.getMemberByUser_id(1L)).willReturn(Optional.of(member));
+        given(aiInterviewService.createInterview(any(AIInterview.class))).willReturn(aiInterview);
 
-        // POST 요청 테스트
+        AIInterviewDTO aiInterviewDTOResponse = new AIInterviewDTO();
+        aiInterviewDTOResponse.setUser_id(1L);
+        aiInterviewDTOResponse.setInterviewType("직무 면접");
+        aiInterviewDTOResponse.setFeedbackType("전체 피드백");
+
+        given(aiInterviewService.convertToDTO(any(AIInterview.class))).willReturn(aiInterviewDTOResponse);
+
         mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(aiInterviewDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$['aiinterviewNo']").value(1L)); // JSON 경로를 대문자로 수정
+                .andExpect(jsonPath("$.interviewType").value("직무 면접"))
+                .andExpect(jsonPath("$.feedbackType").value("전체 피드백"));
     }
 
     @Test
@@ -98,75 +91,106 @@ class AIInterviewControllerTest {
     void testStartInterview() throws Exception {
         Member member = new Member();
         member.setUser_id(1L);
-        member.setId("user123");
+        member.setId("test1");
 
         AIInterview aiInterview = new AIInterview();
         aiInterview.setAIInterviewNo(1L);
         aiInterview.setMember(member);
 
         given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
-        doNothing().when(aiInterviewService).startInterview(eq(1L), any());
+        given(aiInterviewService.startInterview(any(AIInterview.class), any())).willReturn("첫 질문입니다.");
+        given(externalAPIService.callTTS(anyString())).willReturn("http://tts.audio.url");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/start"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @WithMockUser
-    void testStopInterview() throws Exception {
-        doNothing().when(timerService).stopTimer();
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/stop"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @WithMockUser
-    void testStopRecording() throws Exception {
-        AIInterview aiInterview = new AIInterview();
-        aiInterview.setAIInterviewNo(1L);
-
-        given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
-        doNothing().when(aiInterviewService).stopAudioCapture();
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/stop-recording"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Recording stopped and saved."));
+                .andExpect(jsonPath("$.question").value("첫 질문입니다."))
+                .andExpect(jsonPath("$.ttsAudioUrl").value("http://tts.audio.url"));
     }
 
     @Test
     @WithMockUser
-    void testProcessAudioResponse() throws Exception {
+    void testStartInterviewTimer() throws Exception {
         AIInterview aiInterview = new AIInterview();
         aiInterview.setAIInterviewNo(1L);
-        aiInterview.setFeedbackType("즉시 피드백");
 
         given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
-        given(externalAPIService.callSTT(anyString())).willReturn("Transcribed text");
-        given(aiInterviewService.getSelfIntroductionContentForInterview(any())).willReturn("Self introduction");
-        given(aiInterviewService.getChatGPTQuestion(any(), any(), any(), any())).willReturn("Next question");
-        given(aiInterviewService.getChatGPTFeedback(any(), any())).willReturn("Feedback");
+        given(timerService.getRemainingTime()).willReturn(new java.util.HashMap<>());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/start-timer"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").exists());
+    }
+
+    @Test
+    @WithMockUser
+    void testStartAnswerRecording() throws Exception {
+        AIInterview aiInterview = new AIInterview();
+        aiInterview.setAIInterviewNo(1L);
+
+        given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/answer-start"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Answer recording started."));
+    }
+
+    @Test
+    @WithMockUser
+    void testCompleteAnswerRecording() throws Exception {
+        AIInterview aiInterview = new AIInterview();
+        aiInterview.setAIInterviewNo(1L);
+
+        given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/answer-complete"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Answer recording completed."));
+    }
+
+    @Test
+    @WithMockUser
+    void testConvertAnswerToText() throws Exception {
+        AIInterview aiInterview = new AIInterview();
+        aiInterview.setAIInterviewNo(1L);
+
+        given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
+        given(aiInterviewService.convertAnswerToText(any(), anyString())).willReturn(new java.util.HashMap<>());
 
         MockMultipartFile mockAudioFile = new MockMultipartFile("audioFile", "test.wav", "audio/wav", "dummy data".getBytes());
 
-        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/aiinterview/1/process-audio-response")
+        mockMvc.perform(MockMvcRequestBuilders.multipart("/api/aiinterview/1/convert-answer")
                         .file(mockAudioFile))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Feedback"));
+                .andExpect(jsonPath("$").exists());
     }
 
     @Test
     @WithMockUser
-    void testConvertTextToSpeech() throws Exception {
-        String text = "Hello World";
-        String audioFilePath = "output.mp3";
+    void testGenerateFeedback() throws Exception {
+        AIInterview aiInterview = new AIInterview();
+        aiInterview.setAIInterviewNo(1L);
+        aiInterview.setFeedbackType("전체 피드백");
 
-        given(externalAPIService.callTTS(text)).willReturn(audioFilePath);
+        given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
+        given(aiInterviewService.generateFullFeedback(any())).willReturn(new java.util.HashMap<>());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/tts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"text\": \"Hello World\"}"))
-                .andExpect(status().isOk());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/generate-feedback"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").exists());
+    }
+
+    @Test
+    @WithMockUser
+    void testNextQuestion() throws Exception {
+        AIInterview aiInterview = new AIInterview();
+        aiInterview.setAIInterviewNo(1L);
+
+        given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
+        given(aiInterviewService.generateNextQuestion(any())).willReturn(new java.util.HashMap<>());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/next-question"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").exists());
     }
 
     @Test
@@ -176,10 +200,20 @@ class AIInterviewControllerTest {
         aiInterview.setAIInterviewNo(1L);
 
         given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
-        doNothing().when(aiInterviewService).endInterview(any(AIInterview.class));
+        given(aiInterviewService.endInterview(any())).willReturn(new java.util.HashMap<>());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/end"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").exists());
+    }
+
+    @Test
+    @WithMockUser
+    void testDeleteInterview() throws Exception {
+        doNothing().when(aiInterviewService).deleteInterviewById(1L);
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/aiinterview/1"))
+                .andExpect(status().isNoContent());
     }
 
     @Test
@@ -190,15 +224,15 @@ class AIInterviewControllerTest {
 
         AIInterviewDTO aiInterviewDTO = new AIInterviewDTO();
         aiInterviewDTO.setUser_id(1L);
-        aiInterviewDTO.setInterviewType("Technical");
+        aiInterviewDTO.setInterviewType("직무 면접");
 
         given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
-        given(aiInterviewService.convertToDTO(any(AIInterview.class))).willReturn(aiInterviewDTO);
+        given(aiInterviewService.convertToDTO(any())).willReturn(aiInterviewDTO);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/aiinterview/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user_id").value(1L))
-                .andExpect(jsonPath("$.interviewType").value("Technical"));
+                .andExpect(jsonPath("$.interviewType").value("직무 면접"));
     }
 
     @Test
@@ -207,18 +241,9 @@ class AIInterviewControllerTest {
         AIInterview aiInterview = new AIInterview();
         aiInterview.setAIInterviewNo(1L);
 
-        given(aiInterviewService.findByMemberId("user123")).willReturn(List.of(aiInterview));
+        given(aiInterviewService.findByMemberId("test1")).willReturn(List.of(aiInterview));
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/aiinterview/id/user123"))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/aiinterview/id/test1"))
                 .andExpect(status().isOk());
-    }
-
-    @Test
-    @WithMockUser
-    void testDeleteInterview() throws Exception {
-        doNothing().when(aiInterviewService).deleteInterviewById(1L);
-
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/aiinterview/1"))
-                .andExpect(status().isNoContent());
     }
 }
