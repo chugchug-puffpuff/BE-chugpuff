@@ -6,9 +6,14 @@ import chugpuff.chugpuff.entity.JobPostingComment;
 import chugpuff.chugpuff.entity.LocationCode;
 import chugpuff.chugpuff.entity.Scrap;
 import chugpuff.chugpuff.repository.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -29,10 +34,15 @@ public class JobPostingService {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private static final String API_URL = "https://oapi.saramin.co.kr/job-search";
+
+    private static final String BING_API_URL = "https://api.bing.microsoft.com/v7.0/images/search";
     private static final Logger logger = Logger.getLogger(JobPostingService.class.getName());
 
     @Value("${saramin.access-key}")
     private String accessKey;
+
+    @Value("${bing.api-key}")
+    private String bingApiKey;
 
     @Autowired
     private LocationCodeRepository locationCodeRepository;
@@ -343,5 +353,39 @@ public class JobPostingService {
         return jobCodes.stream()
                 .map(JobCode::getJobName)
                 .collect(Collectors.toList());
+    }
+
+    //기업 로고 검색 (Bing API)
+    public String getCompanyLogo(String company) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(BING_API_URL)
+                .queryParam("q", company + " 로고")
+                .queryParam("count", 1) // 첫 번째 이미지만 가져오기
+                .queryParam("mkt", "ko-KR") // 한국 시장 (지역) 설정
+                .queryParam("setLang", "ko"); // 한국어 언어 설정
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Ocp-Apim-Subscription-Key", bingApiKey);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        ResponseEntity<String> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, entity, String.class);
+
+        // Bing API 응답에서 로고 URL 추출
+        String responseBody = response.getBody();
+        String logoUrl = parseLogoUrlFromResponse(responseBody);
+
+        return logoUrl;
+    }
+
+    // 응답에서 URL 추출 (JSON 파싱해서 contentUrl 추출)
+    private String parseLogoUrlFromResponse(String response) {
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode root = objectMapper.readTree(response);
+            // 첫 번째 결과의 "contentUrl" 필드에서 URL 추출
+            return root.path("value").get(0).path("contentUrl").asText();
+        } catch (Exception e) {
+            logger.severe("Error parsing response: " + e.getMessage());
+            return null;
+        }
     }
 }

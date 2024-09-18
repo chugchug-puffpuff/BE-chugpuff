@@ -14,8 +14,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/job-postings")
 public class JobPostingController {
+    private final JobPostingService jobPostingService;
+
     @Autowired
-    private JobPostingService jobPostingService;
+    public JobPostingController(JobPostingService jobPostingService) {
+        this.jobPostingService = jobPostingService;
+    }
 
     @Autowired
     private MemberService memberService;
@@ -164,5 +168,12 @@ public class JobPostingController {
     public ResponseEntity<List<String>> getJobNamesByJobMidName(@RequestParam String jobMidName) {
         List<String> jobNames = jobPostingService.getJobNamesByJobMidName(jobMidName);
         return ResponseEntity.ok(jobNames);
+    }
+
+    // 기업 로고 검색
+    @GetMapping("/logo")
+    public ResponseEntity<String> getCompanyLogo(@RequestParam String company) {
+        String logoUrl = jobPostingService.getCompanyLogo(company);
+        return ResponseEntity.ok().body(logoUrl);
     }
 }
