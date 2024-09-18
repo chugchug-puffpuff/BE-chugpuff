@@ -120,6 +120,7 @@ public class CommentService {
         dto.setBcDate(comment.getBcDate());
         dto.setBcModifiedDate(comment.getBcModifiedDate());
         dto.setMemberName(comment.getMember().getName());
+        dto.setBoradNo(comment.getBoard().getBoardNo());
         return dto;
     }
 

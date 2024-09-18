@@ -13,5 +13,6 @@ public class CommentDTO {
     private LocalDateTime bcDate;
     private String memberName;
     private LocalDateTime bcModifiedDate;
+    private int boradNo;
 
 }
