@@ -129,8 +129,12 @@ public class BoardController {
 
     // 토큰을 통해 인증된 사용자가 좋아요한 게시글 조회
     @GetMapping("/liked")
-    public List<Board> getBoardsLikedByAuthenticatedUser(Authentication authentication) {
-        return boardService.findBoardsLikedByAuthenticatedUser(authentication);
+    public ResponseEntity<List<BoardDTO>> getBoardsLikedByAuthenticatedUser(Authentication authentication) {
+        List<BoardDTO> likedBoards = boardService.findBoardsLikedByAuthenticatedUser(authentication)
+                .stream()
+                .map(boardService::convertToDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(likedBoards);
     }
 
     //게시글 검색
