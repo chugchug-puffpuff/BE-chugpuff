@@ -96,7 +96,7 @@ public class AIInterviewController {
         }
 
         aiInterviewService.captureUserAudio();
-        return ResponseEntity.ok("Answer recording started.");
+        return ResponseEntity.ok("녹음 시작");
     }
 
     // 답변 녹음 완료
@@ -108,7 +108,7 @@ public class AIInterviewController {
         }
 
         aiInterviewService.stopAudioCapture();
-        return ResponseEntity.ok("Answer recording completed.");
+        return ResponseEntity.ok("녹음 완료");
     }
 
     // 녹음된 파일을 STT로 변환하여 텍스트로 반환

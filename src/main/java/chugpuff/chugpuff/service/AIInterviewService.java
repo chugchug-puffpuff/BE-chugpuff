@@ -60,24 +60,20 @@ public class AIInterviewService {
 
     // AI 면접 생성 메서드
     public AIInterview createInterview(AIInterview aiInterview) {
-        // JWT 토큰에서 사용자 정보 추출
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
-        // 사용자 정보 확인
         Member member = memberService.getMemberByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Member not found"));
 
-        // 면접에 사용자 정보 저장
         aiInterview.setMember(member);
 
-        // AI 면접 생성
         return aiInterviewRepository.save(aiInterview);
     }
 
     // 인터뷰 세션 초기화 및 첫 질문 생성 메서드
     public String startInterview(AIInterview aiInterview) {
-        Member member = aiInterview.getMember(); // 면접에 저장된 사용자 정보 사용
+        Member member = aiInterview.getMember();
 
         String chatPrompt = generateChatPrompt(aiInterview, member);
         String firstResponse = externalAPIService.callChatGPT(chatPrompt);
@@ -104,7 +100,7 @@ public class AIInterviewService {
         String lastQuestion = getCurrentQuestion();
         String lastResponse = getLastUserResponse(aiInterview);
 
-        Member member = aiInterview.getMember(); // 면접에 저장된 사용자 정보 사용
+        Member member = aiInterview.getMember();
         String selfIntroduction = "";
 
         if ("자기소개서 면접".equals(aiInterview.getInterviewType())) {
