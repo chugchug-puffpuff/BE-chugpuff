@@ -11,6 +11,8 @@ import javazoom.jl.decoder.JavaLayerException;
 import javazoom.jl.player.Player;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -58,20 +60,29 @@ public class AIInterviewService {
 
     // AI 면접 생성 메서드
     public AIInterview createInterview(AIInterview aiInterview) {
+        // JWT 토큰에서 사용자 정보 추출
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        // 사용자 정보 확인
+        Member member = memberService.getMemberByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Member not found"));
+
+        // 면접에 사용자 정보 저장
+        aiInterview.setMember(member);
+
+        // AI 면접 생성
         return aiInterviewRepository.save(aiInterview);
     }
 
     // 인터뷰 세션 초기화 및 첫 질문 생성 메서드
-    public String startInterview(AIInterview aiInterview, UserDetails userDetails) {
-        Member member = memberService.getMemberByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("Member not found"));
+    public String startInterview(AIInterview aiInterview) {
+        Member member = aiInterview.getMember(); // 면접에 저장된 사용자 정보 사용
 
         String chatPrompt = generateChatPrompt(aiInterview, member);
         String firstResponse = externalAPIService.callChatGPT(chatPrompt);
         currentQuestion = extractQuestionOrFeedbackFromResponse(firstResponse, false);
         interviewInProgress = true;
-
-        startInterviewTimer(aiInterview);
 
         return currentQuestion;
     }
@@ -93,8 +104,13 @@ public class AIInterviewService {
         String lastQuestion = getCurrentQuestion();
         String lastResponse = getLastUserResponse(aiInterview);
 
-        Member member = aiInterview.getMember();
-        String selfIntroduction = getSelfIntroductionContentForInterview(member);
+        Member member = aiInterview.getMember(); // 면접에 저장된 사용자 정보 사용
+        String selfIntroduction = "";
+
+        if ("자기소개서 면접".equals(aiInterview.getInterviewType())) {
+            selfIntroduction = getSelfIntroductionContentForInterview(member);
+        }
+
         String nextQuestionPrompt = createQuestionPrompt(aiInterview, lastQuestion, lastResponse, selfIntroduction);
 
         String nextQuestionResponse = externalAPIService.callChatGPT(nextQuestionPrompt);
@@ -255,6 +271,7 @@ public class AIInterviewService {
     // 질문 및 피드백을 위한 ChatGPT 프롬프트 생성 매서드
     private String generateChatPrompt(AIInterview aiInterview, Member member) {
         String chatPrompt;
+
         if ("인성 면접".equals(aiInterview.getInterviewType())) {
             chatPrompt = "인성 면접을 시작합니다. 각 요구사항에 맞게 면접을 진행해주세요. 1. 질문을 하나씩 해주세요. 2. 면접의 주제는 '인성면접' 입니다. 3. 한글로 해주세요. 4. 존댓말로 해주세요.";
         } else if ("직무 면접".equals(aiInterview.getInterviewType())) {
@@ -267,6 +284,7 @@ public class AIInterviewService {
         } else {
             throw new RuntimeException("Invalid interview type");
         }
+
         return chatPrompt;
     }
 

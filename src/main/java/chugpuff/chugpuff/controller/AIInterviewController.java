@@ -7,8 +7,6 @@ import chugpuff.chugpuff.service.AIInterviewService;
 import chugpuff.chugpuff.service.ExternalAPIService;
 import chugpuff.chugpuff.service.MemberService;
 import chugpuff.chugpuff.service.TimerService;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
@@ -60,12 +58,12 @@ public class AIInterviewController {
 
     // 모의면접 세션 초기화 및 첫 질문 생성
     @PostMapping("/{AIInterviewNo}/start")
-    public ResponseEntity<Map<String, String>> startInterview(@PathVariable Long AIInterviewNo, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<Map<String, String>> startInterview(@PathVariable Long AIInterviewNo) {
         AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
         if (aiInterview == null) {
             return ResponseEntity.badRequest().body(null);
         }
-        String firstQuestion = aiInterviewService.startInterview(aiInterview, userDetails);
+        String firstQuestion = aiInterviewService.startInterview(aiInterview); // 수정된 부분
         String ttsAudioUrl = externalAPIService.callTTS(firstQuestion);
 
         Map<String, String> response = new HashMap<>();
@@ -146,7 +144,7 @@ public class AIInterviewController {
             response = aiInterviewService.generateFullFeedback(aiInterview);
         } else {
             String lastUserResponse = aiInterviewService.userResponses.get(aiInterview.getAIInterviewNo());
-            response = aiInterviewService.generateFeedback(aiInterview, lastUserResponse);
+            response = aiInterviewService.generateFeedback(aiInterview, lastUserResponse); // 수정된 부분
         }
 
         return ResponseEntity.ok(response);
@@ -160,7 +158,7 @@ public class AIInterviewController {
             return ResponseEntity.badRequest().body(null);
         }
 
-        Map<String, String> response = aiInterviewService.generateNextQuestion(aiInterview);
+        Map<String, String> response = aiInterviewService.generateNextQuestion(aiInterview); // 수정된 부분
         return ResponseEntity.ok(response);
     }
 
@@ -206,12 +204,4 @@ public class AIInterviewController {
     public List<AIInterview> getInterviewsByMember(@PathVariable String id) {
         return aiInterviewService.findByMemberId(id);
     }
-}
-
-@Getter
-@Setter
-class FeedbackRequest {
-    private String question;
-    private String answer;
-    private String feedback;
 }
