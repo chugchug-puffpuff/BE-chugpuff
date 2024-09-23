@@ -271,7 +271,7 @@ public class AIInterviewService {
         if ("인성 면접".equals(aiInterview.getInterviewType())) {
             chatPrompt = "인성 면접을 시작합니다. 아래 형식을 반드시 따르세요.\n"
                     + "형식: 질문: [질문 내용]\n"
-                    + "반드시 질문은 '질문: '으로 시작해야 합니다. 이 형식을 따르지 않을 경우, 결과는 무효로 처리됩니다. 예시: '질문: 인성 면접에서 중요한 점은 무엇인가요?'\n"
+                    + "반드시 질문은 '질문: '으로 시작하고, 불필요한 내용(예: '알겠습니다' 등)은 포함하지 마세요. 예시: '질문: 인성 면접에서 가장 중요하게 생각하는 점은 무엇인가요?'\n"
                     + "1. 질문은 반드시 '질문: '으로 시작해야 합니다.\n"
                     + "2. 한 번에 하나의 질문만 해주세요.\n"
                     + "3. 면접의 주제는 인성 면접입니다.\n"
@@ -283,7 +283,7 @@ public class AIInterviewService {
             String jobKeyword = member.getJobKeyword();
             chatPrompt = job + " 직무에 대한 면접을 " + jobKeyword + "에 중점을 두고 시작합니다. 반드시 아래 형식을 따르세요.\n"
                     + "형식: 질문: [질문 내용]\n"
-                    + "반드시 질문은 '질문: '으로 시작해야 하며, 이 형식을 무조건 따르세요. 예시: '질문: 이 직무에서 중요한 기술은 무엇인가요?'\n"
+                    + "반드시 질문은 '질문: '으로 시작하고, 불필요한 내용(예: '알겠습니다' 등)은 포함하지 마세요. 예시: '질문: 이 직무에서 중요한 기술은 무엇인가요?'\n"
                     + "1. 질문은 반드시 '질문: '으로 시작해야 합니다.\n"
                     + "2. 한 번에 하나의 질문만 해주세요.\n"
                     + "3. 면접의 주제는 " + job + " 직무의 " + jobKeyword + "입니다.\n"
@@ -294,7 +294,7 @@ public class AIInterviewService {
             String selfIntroductionContent = getSelfIntroductionContentForInterview(member);
             chatPrompt = selfIntroductionContent + " 이 자기소개서를 기반으로 면접을 시작합니다. 반드시 아래 형식을 따르세요.\n"
                     + "형식: 질문: [질문 내용]\n"
-                    + "반드시 질문은 '질문: '으로 시작해야 하며, 이 형식을 무조건 따르세요. 예시: '질문: 자기소개서를 작성하면서 중요하게 생각한 점은 무엇인가요?'\n"
+                    + "반드시 질문은 '질문: '으로 시작하고, 불필요한 내용(예: '알겠습니다' 등)은 포함하지 마세요. 예시: '질문: 자기소개서를 작성하면서 가장 중요하게 생각한 점은 무엇인가요?'\n"
                     + "1. 질문은 반드시 '질문: '으로 시작해야 합니다.\n"
                     + "2. 한 번에 하나의 질문만 해주세요.\n"
                     + "3. 면접의 주제는 '자기소개서 면접'입니다.\n"
@@ -441,7 +441,16 @@ public class AIInterviewService {
             allResponses.append(response.getF_answer()).append(" ");
         }
 
-        String fullFeedbackPrompt = "이 면접에서 다뤄진 모든 질문과 대답을 바탕으로 전체적인 피드백을 제공해주세요: " + allQuestions.toString() + allResponses.toString();
+        String fullFeedbackPrompt = "전체 피드백: \n"
+                + "이 면접에서 다뤄진 모든 질문과 대답을 바탕으로 전체적인 피드백을 제공해주세요.\n"
+                + "형식은 다음과 같습니다:\n"
+                + "1. [피드백 항목 1]\n"
+                + "2. [피드백 항목 2]\n"
+                + "3. [피드백 항목 3]\n"
+                + "반드시 3가지의 피드백 항목을 모두 제공해주세요."
+                + "그 후에 반드시 종합적인 피드백을 제공해 주세요.\n\n"
+                + "질문: " + allQuestions.toString() + "\n"
+                + "답변: " + allResponses.toString();
 
         String fullFeedback = externalAPIService.callChatGPT(fullFeedbackPrompt);
 
