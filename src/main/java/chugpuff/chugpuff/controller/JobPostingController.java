@@ -173,7 +173,7 @@ public class JobPostingController {
     // 기업 로고 검색
     @GetMapping("/logo")
     public ResponseEntity<String> getCompanyLogo(@RequestParam String company) {
-        String logoUrl = jobPostingService.getCompanyLogo(company);
+        String logoUrl = jobPostingService.getCompanyLogos(company).toString();
         return ResponseEntity.ok().body(logoUrl);
     }
 }

@@ -24,6 +24,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
@@ -355,13 +356,11 @@ public class JobPostingService {
                 .collect(Collectors.toList());
     }
 
-    //기업 로고 검색 (Bing API)
-    public String getCompanyLogo(String company) {
+    // 기업 로고 검색 (Bing API)
+    public List<String> getCompanyLogos(String company) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(BING_API_URL)
                 .queryParam("q", company + " 로고")
-                .queryParam("count", 1) // 첫 번째 이미지만 가져오기
-                .queryParam("mkt", "ko-KR") // 한국 시장 (지역) 설정
-                .queryParam("setLang", "ko"); // 한국어 언어 설정
+                .queryParam("count", 50); // 최대 50개의 이미지를 가져오기
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Ocp-Apim-Subscription-Key", bingApiKey);
@@ -371,21 +370,29 @@ public class JobPostingService {
 
         // Bing API 응답에서 로고 URL 추출
         String responseBody = response.getBody();
-        String logoUrl = parseLogoUrlFromResponse(responseBody);
-
-        return logoUrl;
+        return getLogoUrlsFromResponse(responseBody, company); // 여러 개의 URL을 반환하도록 변경
     }
 
-    // 응답에서 URL 추출 (JSON 파싱해서 contentUrl 추출)
-    private String parseLogoUrlFromResponse(String response) {
+    // 응답에서 여러 URL 추출 (JSON 파싱해서 contentUrl 추출)
+    private List<String> getLogoUrlsFromResponse(String response, String company) {
+        List<String> logoUrls = new ArrayList<>();
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode root = objectMapper.readTree(response);
-            // 첫 번째 결과의 "contentUrl" 필드에서 URL 추출
-            return root.path("value").get(0).path("contentUrl").asText();
+            JsonNode valueArray = root.path("value");
+
+            for (JsonNode node : valueArray) {
+                String contentUrl = node.path("contentUrl").asText();
+                String name = node.path("name").asText();
+
+                // 검색된 이미지의 이름이나 URL에서 회사 이름을 찾습니다
+                if (name.contains(company) || contentUrl.contains(company)) {
+                    logoUrls.add(contentUrl); // 회사 이름이 일치하는 URL 저장
+                }
+            }
         } catch (Exception e) {
-            logger.severe("Error parsing response: " + e.getMessage());
-            return null;
+            e.printStackTrace();
         }
+        return logoUrls;
     }
 }
