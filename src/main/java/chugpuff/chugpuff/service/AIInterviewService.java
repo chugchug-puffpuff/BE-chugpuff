@@ -10,6 +10,8 @@ import chugpuff.chugpuff.repository.*;
 import javazoom.jl.decoder.JavaLayerException;
 import javazoom.jl.player.Player;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -59,16 +61,47 @@ public class AIInterviewService {
     private TargetDataLine microphone;
 
     // AI 면접 생성 메서드
-    public AIInterview createInterview(AIInterview aiInterview) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-
-        Member member = memberService.getMemberByUsername(username)
+    public ResponseEntity<?> createInterview(AIInterviewDTO aiInterviewDTO) {
+        Member member = memberService.getMemberByUser_id(aiInterviewDTO.getUser_id())
                 .orElseThrow(() -> new RuntimeException("Member not found"));
 
+        String selfIntroduction = getSelfIntroductionContentForInterview(member);
+
+        if (selfIntroduction == null) {
+            return ResponseEntity.status(HttpStatus.OK).body("저장된 자기소개서가 없습니다.");
+        }
+
+        AIInterview aiInterview = new AIInterview();
+        aiInterview.setInterviewType(aiInterviewDTO.getInterviewType());
+        aiInterview.setFeedbackType(aiInterviewDTO.getFeedbackType());
         aiInterview.setMember(member);
 
-        return aiInterviewRepository.save(aiInterview);
+        AIInterview createdInterview = aiInterviewRepository.save(aiInterview);
+
+        return ResponseEntity.ok(createdInterview);
+    }
+
+    // 자기소개서 내용을 가져오는 메서드
+    public String getSelfIntroductionContentForInterview(Member member) {
+        EditSelfIntroduction selfIntroduction = editSelfIntroductionRepository.findByMember(member).stream()
+                .filter(EditSelfIntroduction::isSave)
+                .findFirst()
+                .orElse(null);
+
+        if (selfIntroduction == null) {
+            return null;
+        }
+
+        List<EditSelfIntroductionDetails> detailsList = editSelfIntroductionDetailsRepository.findByEditSelfIntroduction(selfIntroduction);
+
+        StringBuilder selfIntroductionContent = new StringBuilder();
+        selfIntroductionContent.append("다음은 사용자 ").append(member.getName()).append("의 자기소개서입니다:\n");
+        for (EditSelfIntroductionDetails detail : detailsList) {
+            selfIntroductionContent.append("질문: ").append(detail.getES_question()).append("\n");
+            selfIntroductionContent.append("답변: ").append(detail.getES_answer()).append("\n");
+        }
+
+        return selfIntroductionContent.toString();
     }
 
     // 인터뷰 세션 초기화 및 첫 질문 생성 메서드
@@ -366,25 +399,6 @@ public class AIInterviewService {
             }
             return response.trim();
         }
-    }
-
-    // 자기소개서 내용을 불러오는 메서드
-    public String getSelfIntroductionContentForInterview(Member member) {
-        EditSelfIntroduction selfIntroduction = editSelfIntroductionRepository.findByMember(member).stream()
-                .filter(EditSelfIntroduction::isSave)
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("저장된 자기소개서를 찾을 수 없습니다."));
-
-        List<EditSelfIntroductionDetails> detailsList = editSelfIntroductionDetailsRepository.findByEditSelfIntroduction(selfIntroduction);
-
-        StringBuilder selfIntroductionContent = new StringBuilder();
-        selfIntroductionContent.append("다음은 사용자 ").append(member.getName()).append("의 자기소개서입니다:\n");
-        for (EditSelfIntroductionDetails detail : detailsList) {
-            selfIntroductionContent.append("질문: ").append(detail.getES_question()).append("\n");
-            selfIntroductionContent.append("답변: ").append(detail.getES_answer()).append("\n");
-        }
-
-        return selfIntroductionContent.toString();
     }
 
     // 면접 종료 메서드

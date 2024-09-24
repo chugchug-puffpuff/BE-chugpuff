@@ -44,16 +44,8 @@ public class AIInterviewController {
 
     // AI 면접 생성
     @PostMapping
-    public AIInterview createInterview(@RequestBody AIInterviewDTO aiInterviewDTO) {
-        Member member = memberService.getMemberByUser_id(aiInterviewDTO.getUser_id())
-                .orElseThrow(() -> new RuntimeException("Member not found"));
-
-        AIInterview aiInterview = new AIInterview();
-        aiInterview.setInterviewType(aiInterviewDTO.getInterviewType());
-        aiInterview.setFeedbackType(aiInterviewDTO.getFeedbackType());
-        aiInterview.setMember(member);
-
-        return aiInterviewService.createInterview(aiInterview);
+    public ResponseEntity<?> createInterview(@RequestBody AIInterviewDTO aiInterviewDTO) {
+        return aiInterviewService.createInterview(aiInterviewDTO);
     }
 
     // 모의면접 세션 초기화 및 첫 질문 생성
@@ -63,7 +55,7 @@ public class AIInterviewController {
         if (aiInterview == null) {
             return ResponseEntity.badRequest().body(null);
         }
-        String firstQuestion = aiInterviewService.startInterview(aiInterview); // 수정된 부분
+        String firstQuestion = aiInterviewService.startInterview(aiInterview);
         String ttsAudioUrl = externalAPIService.callTTS(firstQuestion);
 
         Map<String, String> response = new HashMap<>();
@@ -144,7 +136,7 @@ public class AIInterviewController {
             response = aiInterviewService.generateFullFeedback(aiInterview);
         } else {
             String lastUserResponse = aiInterviewService.userResponses.get(aiInterview.getAIInterviewNo());
-            response = aiInterviewService.generateFeedback(aiInterview, lastUserResponse); // 수정된 부분
+            response = aiInterviewService.generateFeedback(aiInterview, lastUserResponse);
         }
 
         return ResponseEntity.ok(response);
@@ -158,7 +150,7 @@ public class AIInterviewController {
             return ResponseEntity.badRequest().body(null);
         }
 
-        Map<String, String> response = aiInterviewService.generateNextQuestion(aiInterview); // 수정된 부분
+        Map<String, String> response = aiInterviewService.generateNextQuestion(aiInterview);
         return ResponseEntity.ok(response);
     }
 
