@@ -65,10 +65,12 @@ public class AIInterviewService {
         Member member = memberService.getMemberByUser_id(aiInterviewDTO.getUser_id())
                 .orElseThrow(() -> new RuntimeException("Member not found"));
 
-        String selfIntroduction = getSelfIntroductionContentForInterview(member);
+        if ("자기소개서 면접".equals(aiInterviewDTO.getInterviewType())) {
+            String selfIntroduction = getSelfIntroductionContentForInterview(member);
 
-        if (selfIntroduction == null) {
-            return ResponseEntity.status(HttpStatus.OK).body("저장된 자기소개서가 없습니다.");
+            if (selfIntroduction == null) {
+                return ResponseEntity.status(HttpStatus.OK).body("저장된 자기소개서가 없습니다.");
+            }
         }
 
         AIInterview aiInterview = new AIInterview();
