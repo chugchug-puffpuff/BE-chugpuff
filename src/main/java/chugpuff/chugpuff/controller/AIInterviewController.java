@@ -93,14 +93,14 @@ public class AIInterviewController {
 
     // 답변 녹음 완료
     @PostMapping("/{AIInterviewNo}/answer-complete")
-    public ResponseEntity<String> completeAnswerRecording(@PathVariable Long AIInterviewNo) {
+    public ResponseEntity<Map<String, String>> completeAnswerRecording(@PathVariable Long AIInterviewNo) {
         AIInterview aiInterview = aiInterviewService.getInterviewById(AIInterviewNo);
         if (aiInterview == null) {
-            return ResponseEntity.badRequest().body("Interview not found");
+            return ResponseEntity.badRequest().body(null);
         }
 
-        aiInterviewService.stopAudioCapture();
-        return ResponseEntity.ok("녹음 완료");
+        Map<String, String> response = aiInterviewService.completeAnswerRecordingWithAudioUrl(AIInterviewNo);
+        return ResponseEntity.ok(response);
     }
 
     // 녹음된 파일을 STT로 변환하여 텍스트로 반환

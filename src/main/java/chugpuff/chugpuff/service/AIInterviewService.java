@@ -438,6 +438,19 @@ public class AIInterviewService {
         }
     }
 
+    // 녹음 파일 반환 메서드
+    public Map<String, String> completeAnswerRecordingWithAudioUrl(Long AIInterviewNo) {
+        stopAudioCapture();
+
+        String audioFilePath = "captured_audio.wav";
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "녹음 완료");
+        response.put("captured_audio_url", audioFilePath);
+
+        return response;
+    }
+
     // 전체 피드백 생성 및 저장 메서드
     public Map<String, String> generateFullFeedback(AIInterview aiInterview) {
         List<AIInterviewFF> responses = aiInterviewFFRepository.findByAiInterview(aiInterview);
