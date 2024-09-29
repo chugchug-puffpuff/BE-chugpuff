@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,7 +24,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import java.util.List;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -53,6 +55,7 @@ class AIInterviewControllerTest {
     @Test
     @WithMockUser
     void testCreateInterview() throws Exception {
+        // Given
         AIInterviewDTO aiInterviewDTO = new AIInterviewDTO();
         aiInterviewDTO.setUser_id(1L);
         aiInterviewDTO.setInterviewType("직무 면접");
@@ -68,22 +71,19 @@ class AIInterviewControllerTest {
         aiInterview.setInterviewType("직무 면접");
         aiInterview.setFeedbackType("전체 피드백");
 
+        ResponseEntity<AIInterview> responseEntity = ResponseEntity.ok(aiInterview);
+
+        // When
         given(memberService.getMemberByUser_id(1L)).willReturn(Optional.of(member));
-        given(aiInterviewService.createInterview(any(AIInterview.class))).willReturn(aiInterview);
 
-        AIInterviewDTO aiInterviewDTOResponse = new AIInterviewDTO();
-        aiInterviewDTOResponse.setUser_id(1L);
-        aiInterviewDTOResponse.setInterviewType("직무 면접");
-        aiInterviewDTOResponse.setFeedbackType("전체 피드백");
+        given(aiInterviewService.createInterview(any(AIInterviewDTO.class))).willAnswer(invocation -> responseEntity);
 
-        given(aiInterviewService.convertToDTO(any(AIInterview.class))).willReturn(aiInterviewDTOResponse);
-
+        // Then
         mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(aiInterviewDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.interviewType").value("직무 면접"))
-                .andExpect(jsonPath("$.feedbackType").value("전체 피드백"));
+                .andExpect(jsonPath("$.aiinterviewNo").value(1L));
     }
 
     @Test
@@ -98,7 +98,7 @@ class AIInterviewControllerTest {
         aiInterview.setMember(member);
 
         given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
-        given(aiInterviewService.startInterview(any(AIInterview.class), any())).willReturn("첫 질문입니다.");
+        given(aiInterviewService.startInterview(any(AIInterview.class))).willReturn("첫 질문입니다.");
         given(externalAPIService.callTTS(anyString())).willReturn("http://tts.audio.url");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/start"))
@@ -131,7 +131,7 @@ class AIInterviewControllerTest {
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/answer-start"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Answer recording started."));
+                .andExpect(content().string("녹음 시작"));
     }
 
     @Test
@@ -141,10 +141,11 @@ class AIInterviewControllerTest {
         aiInterview.setAIInterviewNo(1L);
 
         given(aiInterviewService.getInterviewById(1L)).willReturn(aiInterview);
+        given(aiInterviewService.completeAnswerRecordingWithAudioUrl(1L)).willReturn(new java.util.HashMap<>());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/aiinterview/1/answer-complete"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Answer recording completed."));
+                .andExpect(jsonPath("$").exists());
     }
 
     @Test
@@ -244,6 +245,7 @@ class AIInterviewControllerTest {
         given(aiInterviewService.findByMemberId("test1")).willReturn(List.of(aiInterview));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/aiinterview/id/test1"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].aiinterviewNo").value(1L));
     }
 }
