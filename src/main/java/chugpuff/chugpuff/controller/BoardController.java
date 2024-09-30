@@ -1,5 +1,6 @@
 package chugpuff.chugpuff.controller;
 
+import chugpuff.chugpuff.domain.Member;
 import chugpuff.chugpuff.dto.BoardDTO;
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.service.BoardService;
@@ -126,15 +127,29 @@ public class BoardController {
         return ResponseEntity.ok().build();
     }
 
+    // 토큰을 통해 인증된 사용자가 좋아요한 게시글 조회
+    @GetMapping("/liked")
+    public ResponseEntity<List<BoardDTO>> getBoardsLikedByAuthenticatedUser(Authentication authentication) {
+        List<BoardDTO> likedBoards = boardService.findBoardsLikedByAuthenticatedUser(authentication)
+                .stream()
+                .map(boardService::convertToDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(likedBoards);
+    }
+
     //게시글 검색
     @GetMapping("/search")
-    public ResponseEntity<List<BoardDTO>> searchBoards(@RequestParam("keyword") String keyword) {
-        List<BoardDTO> boardDTOs = boardService.searchByKeyword(keyword)
+    public ResponseEntity<List<BoardDTO>> searchBoards(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "categoryId", required = false) Integer categoryId) {
+
+        List<BoardDTO> boardDTOs = boardService.searchByCategoryAndKeyword(categoryId, keyword)
                 .stream()
-                .map(board -> boardService.convertToDTO(board)) // board -> boardService.convertToDTO(board)
+                .map(board -> boardService.convertToDTO(board))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(boardDTOs);
     }
+
 
     // 사용자 토큰으로 게시글 조회
     @GetMapping("/user")

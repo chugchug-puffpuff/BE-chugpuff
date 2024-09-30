@@ -14,8 +14,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/job-postings")
 public class JobPostingController {
+    private final JobPostingService jobPostingService;
+
     @Autowired
-    private JobPostingService jobPostingService;
+    public JobPostingController(JobPostingService jobPostingService) {
+        this.jobPostingService = jobPostingService;
+    }
 
     @Autowired
     private MemberService memberService;
@@ -24,28 +28,33 @@ public class JobPostingController {
     @GetMapping("")
     public ResponseEntity<String> getJobPostings(
             @RequestParam(required = false) String regionName,
-            @RequestParam(required = false) String jobMidName,
             @RequestParam(required = false) String jobName,
-            @RequestParam(required = false) String sortBy) {
+            @RequestParam(required = false) String jobMidname,
+            @RequestParam(required = false) String sort) {
 
         String result;
-        if ("scrap-count".equals(sortBy)) {
+        if ("scrap-count".equals(sort)) {
             result = String.join(", ", jobPostingService.getJobPostingsSortedByScrapCount());
         } else {
-            result = jobPostingService.getJobPostings(regionName, jobMidName, jobName, sortBy);
+            result = jobPostingService.getJobPostings(regionName, jobName, jobMidname, sort);
         }
 
         return ResponseEntity.ok().body(result);
     }
 
-    //키워드 검색
+    //키워드 검색 + 필터링
     @GetMapping("/search")
     public ResponseEntity<String> getJobPostingsByKeywords(
             @RequestParam String keywords,
-            @RequestParam(required = false) String sortBy) {
-        String result = jobPostingService.getJobPostingsByKeywords(keywords, sortBy);
+            @RequestParam(required = false) String regionName,
+            @RequestParam(required = false) String jobName,
+            @RequestParam(required = false) String jobMidname,
+            @RequestParam(required = false) String sort) {
+
+        String result = jobPostingService.getJobPostingsByKeywords(keywords, regionName, jobName,jobMidname, sort);
         return ResponseEntity.ok().body(result);
     }
+
 
     //특정 공고 조회
     @GetMapping("/{jobId}")
@@ -117,6 +126,23 @@ public class JobPostingController {
         return ResponseEntity.noContent().build();
     }
 
+    // 특정 공고에 달린 댓글 조회
+    @GetMapping("/{jobId}/comments")
+    public ResponseEntity<List<JobPostingComment>> getCommentsForJobPosting(@PathVariable String jobId) {
+        List<JobPostingComment> comments = jobPostingService.getCommentsForJobPosting(jobId);
+        return ResponseEntity.ok(comments);
+    }
+
+    // 사용자가 작성한 모든 댓글 조회
+    @GetMapping("/comments/user")
+    public ResponseEntity<List<JobPostingComment>> getUserComments(Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        String memberId = userDetails.getUsername();
+
+        List<JobPostingComment> userComments = jobPostingService.getCommentsByUser(memberId);
+        return ResponseEntity.ok().body(userComments);
+    }
+
     // 요청 바디 작성을 위한
     public static class CommentRequest {
         private String comment;
@@ -131,4 +157,25 @@ public class JobPostingController {
             this.comment = comment;
         }
     }
+
+    //2차 근무지 조회
+    @GetMapping("/regions")
+    public ResponseEntity<List<String>> getRegionsByLocBcd(@RequestParam String regionName) {
+        List<String> regions = jobPostingService.getRegionsByLocBcd(regionName);
+        return ResponseEntity.ok(regions);
+    }
+
+    //세부 직무명 조회
+    @GetMapping("/job-names")
+    public ResponseEntity<List<String>> getJobNamesByJobMidName(@RequestParam String jobMidName) {
+        List<String> jobNames = jobPostingService.getJobNamesByJobMidName(jobMidName);
+        return ResponseEntity.ok(jobNames);
+    }
+
+    /*// 기업 로고 검색
+    @GetMapping("/logo")
+    public ResponseEntity<String> getCompanyLogo(@RequestParam String company) {
+        String logoUrl = jobPostingService.getCompanyLogos(company).toString();
+        return ResponseEntity.ok().body(logoUrl);
+    }*/
 }

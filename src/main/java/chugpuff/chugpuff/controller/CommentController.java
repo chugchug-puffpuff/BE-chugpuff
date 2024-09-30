@@ -37,21 +37,18 @@ public class CommentController {
         commentService.delete(bcNo, authentication);
         return ResponseEntity.noContent().build();
     }
-    //ID로 댓글 조회
-    @GetMapping("/{bcNo}")
-    public Comment getComment(@PathVariable int bcNo) {
-        return commentService.findById(bcNo);
-    }
 
-    //모든 댓글 조회
-    @GetMapping
-    public List<Comment> getAllComments() {
-        return commentService.findAll();
-    }
 
     // 사용자 토큰으로 댓글 조회
     @GetMapping("/user")
     public List<CommentDTO> getUserComments(Authentication authentication) {
         return commentService.findCommentsByUser(authentication);
+    }
+
+    // 특정 게시글에 달린 댓글 조회
+    @GetMapping("/board/{boardNo}")
+    public ResponseEntity<List<CommentDTO>> getCommentsByBoard(@PathVariable int boardNo) {
+        List<CommentDTO> comments = commentService.findCommentsByBoard(boardNo);
+        return ResponseEntity.ok(comments);
     }
 }

@@ -13,6 +13,7 @@ import chugpuff.chugpuff.repository.MemberRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -143,8 +144,32 @@ public class BoardService {
     }
 
     //게시글 검색
-    public List<Board> searchByKeyword(String keyword) {
-        return boardRepository.findByBoardTitleContainingOrBoardContentContaining(keyword, keyword);
+    public List<Board> searchByCategoryAndKeyword(Integer categoryId, String keyword) {
+        if (categoryId != null && keyword != null) {
+            // 카테고리와 키워드가 모두 있을 때: 해당 카테고리에서 제목 또는 내용에 키워드 포함된 게시글 검색
+            return boardRepository.findByCategory_CategoryIdAndBoardTitleContainingOrCategory_CategoryIdAndBoardContentContaining(categoryId, keyword, categoryId, keyword);
+        } else if (categoryId != null) {
+            // 카테고리만 있을 때: 해당 카테고리의 모든 게시글 반환
+            return boardRepository.findByCategory_CategoryId(categoryId);
+        } else if (keyword != null) {
+            // 키워드만 있을 때: 모든 카테고리에서 제목 또는 내용에 키워드 포함된 게시글 검색
+            return boardRepository.findByBoardTitleContainingOrBoardContentContaining(keyword, keyword);
+        } else {
+            // 카테고리와 키워드 둘 다 없으면 모든 게시글 반환
+            return boardRepository.findAll();
+        }
+    }
+
+    // 인증된 사용자가 좋아요한 게시글 조회
+    public List<Board> findBoardsLikedByAuthenticatedUser(Authentication authentication) {
+        String username = authentication.getName(); // 토큰에서 사용자 이름을 가져옴
+
+        // 사용자 정보 조회
+        Member member = memberRepository.findById(username)
+                .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + username));
+
+        // 사용자가 좋아요한 게시글 조회
+        return boardRepository.findByMemberLikes(member);
     }
 
     // 사용자별 게시글 조회

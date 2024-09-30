@@ -8,6 +8,8 @@ import chugpuff.chugpuff.repository.ScrapRepository;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
@@ -16,8 +18,12 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CalenderService {
@@ -100,11 +106,34 @@ public class CalenderService {
         }
     }
 
-        // 스크랩이 삭제될 때 연관된 캘린더 삭제
-        public void deleteCalenderByScrap (Scrap scrap){
-            List<Calender> calenders = calenderRepository.findByScrap(scrap);
-            for (Calender calender : calenders) {
-                calenderRepository.delete(calender);
-            }
+    // 스크랩이 삭제될 때 연관된 캘린더 삭제
+    public void deleteCalenderByScrap (Scrap scrap){
+        List<Calender> calenders = calenderRepository.findByScrap(scrap);
+        for (Calender calender : calenders) {
+            calenderRepository.delete(calender);
         }
     }
+
+    private static final Logger logger = LoggerFactory.getLogger(CalenderService.class);
+
+    // 스크랩한 공고의 마감기한이 D-1인 공고 조회
+    public List<Calender> getCalendersByMemberAndMemoDate(Member member, LocalDate targetDate) {
+        List<Calender> calenders = calenderRepository.findByMember(member);
+        return calenders.stream()
+                .filter(calender -> {
+                    try {
+                        // memo_date의 날짜 부분만 추출하여 LocalDate로 변환
+                        String memoDateString = calender.getMemoDate().substring(0, 10);  // "yyyy-MM-dd" 부분만 추출
+                        LocalDate memoDate = LocalDate.parse(memoDateString);
+
+                        // 날짜 부분만 비교하여 필터링
+                        return memoDate.isEqual(targetDate);
+                    } catch (Exception e) {
+                        logger.error("Failed to parse memoDate: {}", calender.getMemoDate(), e);
+                        return false;
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+}

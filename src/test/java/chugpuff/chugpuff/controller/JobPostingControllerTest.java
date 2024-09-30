@@ -21,14 +21,16 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
 
 import java.util.Arrays;
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -71,11 +73,10 @@ public class JobPostingControllerTest {
     @Test
     @WithMockUser(username = "user", roles = {"USER"})
     public void testGetJobPostings() throws Exception {
-        when(jobPostingService.getJobPostings(anyString(), anyString(), anyString(), anyString())).thenReturn("test response");
+        when(jobPostingService.getJobPostings(anyString(), anyString(), anyString())).thenReturn("test response");
 
         mockMvc.perform(get("/api/job-postings")
                         .param("regionName", "서울")
-                        .param("jobMidName", "IT")
                         .param("jobName", "풀스택")
                         .param("sortBy", "scrap-count"))
                 .andExpect(status().isOk());
@@ -84,13 +85,28 @@ public class JobPostingControllerTest {
     @Test
     @WithMockUser(username = "user", roles = {"USER"})
     public void testGetJobPostingsByKeywords() throws Exception {
-        when(jobPostingService.getJobPostingsByKeywords(anyString(), anyString())).thenReturn("test response");
+        String keywords = "Java Developer";
+        String regionName = "Seoul";
+        String jobName = "Software Engineer";
+        String sortBy = "date";
+
+        String mockResponse = "[{\"title\":\"Java Developer\", \"location\":\"Seoul\", \"jobName\":\"Software Engineer\"}]";
+
+        // JobPostingService의 메서드가 네 개의 매개변수를 받도록 호출을 수정
+        when(jobPostingService.getJobPostingsByKeywords(keywords, regionName, jobName, sortBy))
+                .thenReturn(mockResponse);
 
         mockMvc.perform(get("/api/job-postings/search")
-                        .param("keywords", "풀스택")
-                        .param("sortBy", "scrap-count"))
-                .andExpect(status().isOk());
+                        .param("keywords", keywords)
+                        .param("regionName", regionName)
+                        .param("jobName", jobName)
+                        .param("sortBy", sortBy))
+                .andExpect(status().isOk())
+                .andExpect((ResultMatcher) content().json(mockResponse));
+
+        verify(jobPostingService, times(1)).getJobPostingsByKeywords(keywords, regionName, jobName, sortBy);
     }
+
 
     @Test
     @WithMockUser(username = "user", roles = {"USER"})

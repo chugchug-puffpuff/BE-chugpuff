@@ -111,7 +111,7 @@ public class JobPostingServiceTest {
         String expectedResponse = "{\"jobs\":{\"count\":10,\"start\":0,\"total\":\"1824\",\"job\":[{\"url\":\"http://www.saramin.co.kr/zf_user/jobs/relay/view?rec_idx=48698123&utm_source=job-search-api&utm_medium=api&utm_campaign=saramin-job-search-api\",\"active\":1,\"company\":{\"detail\":{\"href\":\"http://www.saramin.co.kr/company/detail?com_idx=12345\"}},\"id\":\"48698146\"}]}}";
         when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(expectedResponse);
 
-        String actualResponse = jobPostingService.getJobPostings(regionName, jobMidName, jobName, sortBy);
+        String actualResponse = jobPostingService.getJobPostings(regionName, jobName, sortBy);
 
         // JSON 객체로 변환
         JSONObject expectedJson = new JSONObject(expectedResponse);
@@ -129,21 +129,52 @@ public class JobPostingServiceTest {
 
     @Test
     public void testGetJobPostingsByKeywords() throws Exception {
-        // RestTemplate 모의 응답 설정
-        String mockedResponse = "{\"jobs\":{\"count\":1,\"start\":0,\"total\":\"19652\",\"job\":[{\"url\":\"http://www.saramin.co.kr/zf_user/jobs/relay/view?rec_idx=48641635&utm_source=job-search-api&utm_medium=api&utm_campaign=saramin-job-search-api\",\"active\":1,\"company\":{\"detail\":{\"href\":\"http://www.saramin.co.kr/zf_user/company-info/view?csn=5508603146&utm_source=job-search-api&utm_medium=api&utm_campaign=saramin-job-search-api\",\"name\":\"주식회사 곽본\"}},\"position\":{\"title\":\"뮤직펍 사운드랩 매장관리자 채용, 주 5-6일\",\"industry\":{\"code\":\"109\",\"name\":\"외식업·식음료\"},\"location\":{\"code\":\"101180\",\"name\":\"서울 &gt; 송파구\"},\"job-type\":{\"code\":\"1\",\"name\":\"정규직\"},\"job-mid-code\":{\"code\":\"8,10\",\"name\":\"영업·판매·무역,서비스\"},\"job-code\":{\"code\":\"756,767,871,875,876,985,2202\",\"name\":\"식품·푸드,음식료,프랜차이즈,가맹점관리,매장관리,매장매니저,바리스타,바텐더,카페\"},\"experience-level\":{\"code\":0,\"min\":0,\"max\":0,\"name\":\"경력무관\"},\"required-education-level\":{\"code\":\"0\",\"name\":\"학력무관\"}},\"keyword\":\"식품·푸드,음식료,프랜차이즈\",\"salary\":{\"code\":\"17\",\"name\":\"연봉 4,400만원\"},\"id\":\"48641635\",\"posting-timestamp\":\"1721308490\",\"modification-timestamp\":\"1721308908\",\"opening-timestamp\":\"1721307600\",\"expiration-timestamp\":\"1723906799\",\"close-type\":{\"code\":\"1\",\"name\":\"접수마감일\"}}]}}";
-        when(restTemplate.getForEntity(any(String.class), any(Class.class)))
-                .thenReturn(new ResponseEntity<>(mockedResponse, HttpStatus.OK));
+        String keywords = "Java Developer";
+        String regionName = "Seoul";
+        String jobName = "Software Engineer";
+        String sortBy = "date";
 
-        // 테스트 실행
-        String result = jobPostingService.getJobPostingsByKeywords("마케팅", "posting-date");
+        // 기본적으로 기대되는 API URL 형식 생성
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("https://oapi.saramin.co.kr/job-search")
+                .queryParam("access-key", "test-access-key")
+                .queryParam("keywords", keywords)
+                .queryParam("count", 110);
 
-        // JSON 비교
-        JsonNode expectedJson = objectMapper.readTree(mockedResponse);
-        JsonNode actualJson = objectMapper.readTree(result);
+        if (regionName != null && !regionName.isEmpty()) {
+            builder.queryParam("loc_cd", "regionCode");  // 가상 regionCode 추가
+        }
+        if (jobName != null && !jobName.isEmpty()) {
+            builder.queryParam("job_cd", "jobCode");  // 가상 jobCode 추가
+        }
+        if (sortBy != null && !sortBy.isEmpty()) {
+            builder.queryParam("sort", sortBy);
+        }
 
-        // 필요한 필드만 비교
-        assertEquals(expectedJson.get("jobs").get("total"), actualJson.get("jobs").get("total"));
+        String expectedUrl = builder.toUriString();
+
+        // Mocking the repository and service behavior
+        LocationCode locationCode = new LocationCode();
+        locationCode.setLocCd("regionCode");
+        locationCode.setRegionName("Seoul");
+        locationCode.setLocBcd("locBcd");
+
+        JobCode jobCode = new JobCode();
+        jobCode.setJobCd("jobCode");
+        jobCode.setJobMidCd("jobMidCode");
+        jobCode.setJobName(jobName);
+
+        when(locationCodeRepository.findByRegionName(regionName)).thenReturn(List.of(locationCode));
+        when(jobCodeRepository.findByJobName(jobName)).thenReturn(jobCode);
+
+        // RestTemplate의 결과를 가정
+        String mockResponse = "{\"jobs\": [{\"title\": \"Java Developer\"}]}";
+
+        // 실제 서비스 호출 및 결과 검증
+        String result = jobPostingService.getJobPostingsByKeywords(keywords, regionName, jobName, sortBy);
+
+        assertEquals(mockResponse, result);
     }
+
 
     @Test
     public void testGetJobPostingsSortedByScrapCount() {
