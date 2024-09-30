@@ -380,7 +380,7 @@ public class JobPostingService {
                 .collect(Collectors.toList());
     }
 
-    // 기업 로고 검색 (Bing API)
+    /*// 기업 로고 검색 (Bing API)
     public List<String> getCompanyLogos(String company) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(BING_API_URL)
                 .queryParam("q", company + " 로고")
@@ -418,7 +418,7 @@ public class JobPostingService {
             e.printStackTrace();
         }
         return logoUrls;
-    }
+    }*/
     //가공없이
     /*public String getLogos(String company) {
         String query = company + " 로고";

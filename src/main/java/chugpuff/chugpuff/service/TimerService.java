@@ -2,6 +2,9 @@ package chugpuff.chugpuff.service;
 
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class TimerService {
 
@@ -36,6 +39,19 @@ public class TimerService {
             }
         });
         timerThread.start();
+    }
+
+    // 남은 시간 반환
+    public Map<String, Object> getRemainingTime() {
+        long remainingSeconds = remainingTime / 1000;
+        long minutes = remainingSeconds / 60;
+        long seconds = remainingSeconds % 60;
+
+        Map<String, Object> timeMap = new HashMap<>();
+        timeMap.put("minutes", minutes);
+        timeMap.put("seconds", seconds);
+
+        return timeMap;
     }
 
     // 타이머 종료
