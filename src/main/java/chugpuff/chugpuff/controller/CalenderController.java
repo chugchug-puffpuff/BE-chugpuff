@@ -90,7 +90,7 @@ public class CalenderController {
 
 
         return d1Deadlines.stream()
-                .map(calender -> "스크랩한 공고 '" + calender.getMemoContent() + "'의 마감 기한이 D-1입니다. 지금 바로 지원해 보세요!")
+                .map(calender -> "'" + calender.getMemoContent() + "' 일정 하루 전입니다. 지금 바로 확인해 보세요!")
                 .collect(Collectors.toList());
     }
 
