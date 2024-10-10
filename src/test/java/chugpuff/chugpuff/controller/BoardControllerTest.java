@@ -5,6 +5,7 @@ import chugpuff.chugpuff.dto.CategoryDTO;
 import chugpuff.chugpuff.entity.Board;
 import chugpuff.chugpuff.entity.Category;
 import chugpuff.chugpuff.service.BoardService;
+import chugpuff.chugpuff.service.LikeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,9 @@ public class BoardControllerTest {
     @Mock
     private BoardService boardService;
 
+    @Mock
+    private LikeService likeService;
+
     @InjectMocks
     private BoardController boardController;
 
@@ -56,13 +60,12 @@ public class BoardControllerTest {
     @Test
     @WithMockUser
     public void testGetAllBoards() throws Exception {
-        when(boardService.findAll()).thenReturn(Collections.emptyList());
+        when(boardService.findAllBoardDTOs()).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/board"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$").isArray());
-
     }
 
     @Test
@@ -70,7 +73,7 @@ public class BoardControllerTest {
     public void testGetBoardById() throws Exception {
         BoardDTO boardDTO = new BoardDTO();
         boardDTO.setBoardNo(1);
-        when(boardService.findById(anyInt())).thenReturn(Optional.of(boardDTO));
+        when(boardService.findBoardDTOById(anyInt())).thenReturn(boardDTO);
 
         mockMvc.perform(get("/api/board/1"))
                 .andExpect(status().isOk())
@@ -81,71 +84,81 @@ public class BoardControllerTest {
     @Test
     @WithMockUser(username = "testUser", roles = {"USER"})
     public void testCreateBoard() throws Exception {
-        BoardDTO boardDTO = new BoardDTO();
-        boardDTO.setBoardNo(1);
-        boardDTO.setBoardTitle("Test Title");
-        boardDTO.setBoardContent("Test Content");
-        boardDTO.setMemberName("Test Member");
-        boardDTO.setBoardDate(LocalDateTime.now());
-        boardDTO.setLikes(0);
-        boardDTO.setCommentCount(0);
-        boardDTO.setCategory(new CategoryDTO(1, "정보공유"));
-
-        // Mocking Board entity
+        // Create a sample Board object
         Board board = new Board();
         board.setBoardNo(1);
         board.setBoardTitle("Test Title");
         board.setBoardContent("Test Content");
-        // Set other fields accordingly
 
-        // Mock the service methods
+
+        // Mocking the service to return the created board
         when(boardService.save(any(Board.class), any(Authentication.class))).thenReturn(board);
-        when(boardService.convertToDTO(any(Board.class))).thenReturn(boardDTO);
 
+        // Perform POST request and verify the response
         mockMvc.perform(post("/api/board")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(boardDTO)))
+                        .content(objectMapper.writeValueAsString(board)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.boardTitle").value("Test Title"))
-                .andExpect(jsonPath("$.boardContent").value("Test Content"))
-                .andExpect(jsonPath("$.memberName").value("Test Member"));
+                .andExpect(jsonPath("$.boardContent").value("Test Content"));
     }
+
     @Test
     @WithMockUser(username = "testUser", roles = {"USER"})
     public void testUpdateBoard() throws Exception {
-        // Sample BoardDTO for the update
+        // Sample updated BoardDTO
         BoardDTO updateBoardDTO = new BoardDTO();
         updateBoardDTO.setBoardNo(1);
         updateBoardDTO.setBoardTitle("Updated Title");
         updateBoardDTO.setBoardContent("Updated Content");
-        updateBoardDTO.setMemberName("Updated Member");
-        updateBoardDTO.setBoardDate(LocalDateTime.now());
-        updateBoardDTO.setBoardModifiedDate(LocalDateTime.now());
-        updateBoardDTO.setLikes(0);
-        updateBoardDTO.setCommentCount(0);
-        updateBoardDTO.setCategory(new CategoryDTO(1, "Updated Category"));
 
-        // Mocking service response
+        // Mocking the service to return the updated board
         when(boardService.update(anyInt(), any(BoardDTO.class), any(Authentication.class)))
                 .thenReturn(updateBoardDTO);
 
+        // Perform PUT request and verify the response
         mockMvc.perform(put("/api/board/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateBoardDTO)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.boardTitle").value("Updated Title"))
-                .andExpect(jsonPath("$.boardContent").value("Updated Content"))
-                .andExpect(jsonPath("$.memberName").value("Updated Member"))
-                .andExpect(jsonPath("$.category.categoryName").value("Updated Category"));
+                .andExpect(jsonPath("$.boardContent").value("Updated Content"));
     }
 
     @Test
     @WithMockUser(username = "testUser", roles = {"USER"})
     public void testDeleteBoard() throws Exception {
-        // Mocking service response to do nothing on delete
+        // Mocking the service to perform deletion without error
         doNothing().when(boardService).delete(anyInt(), any(Authentication.class));
 
+        // Perform DELETE request and verify the response
         mockMvc.perform(delete("/api/board/1"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    @WithMockUser
+    public void testGetLikesCount() throws Exception {
+        // Mocking the service to return a likes count
+        when(likeService.getLikesCount(anyInt())).thenReturn(100);
+
+        // Perform GET request and verify the response
+        mockMvc.perform(get("/api/board/1/likes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value(100));
+    }
+
+
+    @Test
+    @WithMockUser
+    public void testToggleLike() throws Exception {
+        // Mocking the service to toggle like without error
+        doNothing().when(likeService).toggleLike(anyInt());
+
+        // Perform POST request and verify the response
+        mockMvc.perform(post("/api/board/1/like"))
+                .andExpect(status().isOk());
+    }
+
+
 }
